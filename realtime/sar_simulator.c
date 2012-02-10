@@ -6,20 +6,24 @@
 #include <fftw3.h>
 #include <sys/time.h>
 
-void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int* chirp_length, double complex** chirp_signal, double* signal_distance);
-void chirp_matched_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int* chirp_length, double complex** chirp_signal);
-double* scene_generator(unsigned int nrows, unsigned int ncols);
-void insert_waveform_in_scene(unsigned int waveform_length, double complex* waveform, unsigned int nrows, unsigned int ncols, double* scene, unsigned int* nnrows, unsigned int* nncols, double complex** scene_with_waveform);
-double complex* radar_imager(unsigned int nnrows, unsigned int nncols, double complex* scene, unsigned int altitude, float beamwidth);
-void gbp(unsigned int nrows, unsigned int ncols, double complex* raw_data, double complex** sar_image);
-double complex* pulse_compressed(unsigned int kernel_length, double complex* kernel, unsigned int nrows, unsigned int ncols, double complex* image);
-void gbp_fft(unsigned int nrows, unsigned int ncols, double complex* sar_data, double complex** sar_fft);
+void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int* chirp_length,  double* signal_distance);
+void chirp_matched_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int* chirp_length);
+void scene_generator(unsigned int nrows, unsigned int ncols);
+void insert_waveform_in_scene(unsigned int waveform_length, unsigned int nrows, unsigned int ncols, unsigned int* nnrows, unsigned int* nncols);
+void radar_imager(unsigned int nnrows, unsigned int nncols, unsigned int altitude, float beamwidth);
+void gbp(unsigned int nrows, unsigned int ncols);
+void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned int ncols);
+void gbp_fft(unsigned int nrows, unsigned int ncols);
+void pulse_compressed_signal(unsigned int kernel_length);
 
 #define PI 3.14159265
 // 10MB
-#define MEMORY_SIZE 10485760
+#define MEMORY_SIZE 104857600
 
 double scene[MEMORY_SIZE/sizeof(double)];
+double chirp_time_vector[MEMORY_SIZE/sizeof(double)];
+double matched_time_vector[MEMORY_SIZE/sizeof(double)];
+double complex pulse_compressed_waveform[2*MEMORY_SIZE/sizeof(double complex)];
 double complex chirp_signal[MEMORY_SIZE/sizeof(double complex)];
 double complex matched_chirp[MEMORY_SIZE/sizeof(double complex)];
 double complex scene_with_waveform[MEMORY_SIZE/sizeof(double complex)];
@@ -27,8 +31,10 @@ double complex radar_image[MEMORY_SIZE/sizeof(double complex)];
 double complex pulse_compressed_radar_image[MEMORY_SIZE/sizeof(double complex)];
 double complex sar_image[MEMORY_SIZE/sizeof(double complex)];
 double complex sar_fft[MEMORY_SIZE/sizeof(double complex)];
+double complex sar_img_shifted[MEMORY_SIZE/sizeof(double complex)];
 
 int main(int argc, char** argv){
+/*
   double complex* chirp_signal;
   double complex* matched_chirp;
   double complex* scene_with_waveform;
@@ -37,6 +43,7 @@ int main(int argc, char** argv){
   double complex* sar_image;
   double complex* sar_fft;
   double* scene;
+*/
 
   unsigned int chirp_length;
   unsigned int nrows = 0;
@@ -63,99 +70,67 @@ int main(int argc, char** argv){
 
   gettimeofday(&otime, NULL);
 
-  scene = scene_generator(nrows, ncols);
-  if(scene == 0)
-    return;
+  memset(scene, 0, MEMORY_SIZE);
+  memset(chirp_time_vector, 0, MEMORY_SIZE);
+  memset(matched_time_vector, 0, MEMORY_SIZE);
+  memset(chirp_signal, 0, MEMORY_SIZE);
+  memset(matched_chirp, 0, MEMORY_SIZE);
+  memset(scene_with_waveform, 0, MEMORY_SIZE);
+  memset(radar_image, 0, MEMORY_SIZE);
+  memset(pulse_compressed_radar_image, 0, MEMORY_SIZE);
+  memset(sar_image, 0, MEMORY_SIZE);
+  memset(sar_fft, 0, MEMORY_SIZE);
+  memset(pulse_compressed_waveform, 0, MEMORY_SIZE);
+
+  scene_generator(nrows, ncols);
   
   gettimeofday(&ntime, NULL);
   printf("Scene generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  chirp_generator(start_frequency, bandwidth, &chirp_length, &chirp_signal, &signal_distance);
-  if(chirp_signal == 0){
-    free(scene);
-    return;
-  }
+  chirp_generator(start_frequency, bandwidth, &chirp_length, &signal_distance);
 
   gettimeofday(&ntime, NULL);
   printf("Chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  chirp_matched_generator(start_frequency, bandwidth, &chirp_length, &matched_chirp);
-  if(matched_chirp == 0){
-    free(scene);
-    free(chirp_signal);
-    return;
-  }
+  chirp_matched_generator(start_frequency, bandwidth, &chirp_length);
 
   gettimeofday(&ntime, NULL);
   printf("Matched chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  insert_waveform_in_scene(chirp_length, chirp_signal, nrows, ncols, scene, &nnrows, &nncols, &scene_with_waveform);
-  if(scene_with_waveform == 0){
-    free(scene);
-    free(chirp_signal);
-    free(matched_chirp);
-    return;
-  }
+  pulse_compressed_signal(chirp_length);
+
+  gettimeofday(&ntime, NULL);
+  printf("Single pulse compression took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  gettimeofday(&otime, NULL);
+
+  insert_waveform_in_scene(chirp_length, nrows, ncols, &nnrows, &nncols);
 
   gettimeofday(&ntime, NULL);
   printf("Scene with waveform generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  radar_image = radar_imager(nnrows, nncols, scene_with_waveform, altitude, beamwidth);
-  if(radar_image == 0){
-    free(scene);
-    free(chirp_signal);
-    free(matched_chirp);
-    free(scene_with_waveform);
-    return;
-  }
+  radar_imager(nnrows, nncols, altitude, beamwidth);
 
   gettimeofday(&ntime, NULL);
   printf("Radar image generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  pulse_compressed_radar_image = pulse_compressed(chirp_length, matched_chirp, nnrows, nncols, radar_image);
-  if(pulse_compressed_radar_image == 0){
-    free(scene);
-    free(chirp_signal);
-    free(matched_chirp);
-    free(scene_with_waveform);
-    free(radar_image);
-    return;
-  }
+  pulse_compressed(chirp_length, nnrows, nncols);
 
   gettimeofday(&ntime, NULL);
   printf("Pulse compression of radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  gbp(nnrows, nncols, pulse_compressed_radar_image, &sar_image);
-  if(sar_image == 0){
-    free(scene);
-    free(chirp_signal);
-    free(matched_chirp);
-    free(scene_with_waveform);
-    free(pulse_compressed_radar_image);
-    return;
-  }
+  gbp(nnrows, nncols);
 
   gettimeofday(&ntime, NULL);
   printf("GBP of pulse-compressed radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-
-  gbp_fft(nnrows, nncols, sar_image, &sar_fft);
-  if(sar_fft == 0){
-    free(scene);
-    free(chirp_signal);
-    free(matched_chirp);
-    free(scene_with_waveform);
-    free(pulse_compressed_radar_image);
-    free(sar_image);
-    return;
-  }
+  gbp_fft(nnrows, nncols);
 
   gettimeofday(&ntime, NULL);
   printf("FFT generation of GBP image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -169,11 +144,13 @@ int main(int argc, char** argv){
   printf("Antenna beamwidth: %f\n", beamwidth);
   printf("Start frequency: %i\n", start_frequency);
   printf("Bandwidth: %i\n", bandwidth);
+  printf("Number of complex points: %i\n",nncols*nnrows);
 
   FILE* dimensions = fopen("dimensions.dat", "w");
   FILE* scenef = fopen("scene.dat", "w");
   FILE* chirpf = fopen("chirp.dat", "w");
   FILE* matchedf = fopen("matched.dat", "w");
+  FILE* compressedf = fopen("compressed.dat", "w");
   FILE* scene_with_waveformf = fopen("scene_with_waveform.dat", "w");
   FILE* radar_imagef = fopen("radar_image.dat", "w");
   FILE* pulse_compressedf = fopen("pulse_compressed_image.dat", "w");
@@ -198,6 +175,11 @@ int main(int argc, char** argv){
   for(i = 0; i < chirp_length; i++){
     fprintf(matchedf, "%f\t", creal(matched_chirp[i]));
     fprintf(matchedf, "%f\n", cimag(matched_chirp[i]));
+  }
+
+  for(i = 0; i < chirp_length; i++){
+    fprintf(compressedf, "%f\t", creal(pulse_compressed_waveform[i]));
+    fprintf(compressedf, "%f\n", cimag(pulse_compressed_waveform[i]));
   }
 
   for(i = 0; i < nncols; i++){
@@ -246,21 +228,13 @@ int main(int argc, char** argv){
   fclose(scenef);
   fclose(chirpf);
   fclose(matchedf);
+  fclose(compressedf);
   fclose(scene_with_waveformf);
   fclose(radar_imagef);
   fclose(sar_imagef);
-
-  free(sar_fft);
-  free(sar_image);
-  free(radar_image);
-  free(pulse_compressed_radar_image);
-  free(scene_with_waveform);
-  free(scene);
-  free(chirp_signal);
-  free(matched_chirp);
 }
 
-void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int *chirp_length, double complex** chirp_signal, double* signal_distance){
+void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int *chirp_length, double* signal_distance){
   float chirp_rate = 100;
   float end_time = bandwidth/chirp_rate;
   unsigned int sample_frequency = 5*bandwidth;
@@ -269,14 +243,6 @@ void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsig
 
   *signal_distance = end_time*300000000;
 
-  
-
-  double* chirp_time_vector = malloc(end_time*sample_frequency*sizeof(double));
-  if(chirp_time_vector == 0){
-    printf("Could not allocate memory for time vector.\n");
-    return;
-  }
-
   int i;
   float last_time = 0;
   for(i = 0; i < end_time*sample_frequency; i++){
@@ -284,116 +250,143 @@ void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsig
     last_time += (float)1/sample_frequency;
   }
 
-  *chirp_signal = malloc(end_time*sample_frequency*sizeof(double complex));
-  if(chirp_signal == 0){
-    printf("Could not allocate memory for chirp signal.\n");
-    return;
-  }
-
-  double complex* signal = *chirp_signal;
   for(i = 0; i < end_time*sample_frequency; i++){
-    signal[i] = cos( 2*PI*(start_frequency*chirp_time_vector[i]+chirp_rate*chirp_time_vector[i]*chirp_time_vector[i] ))+_Complex_I*sin( 2*PI*(start_frequency*chirp_time_vector[i]+chirp_rate*chirp_time_vector[i]*chirp_time_vector[i] ));
+    chirp_signal[i] = cos( 2*PI*(start_frequency*chirp_time_vector[i]+chirp_rate*chirp_time_vector[i]*chirp_time_vector[i] ))+_Complex_I*sin( 2*PI*(start_frequency*chirp_time_vector[i]+chirp_rate*chirp_time_vector[i]*chirp_time_vector[i] ));
   }
 }
 
-void chirp_matched_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int *chirp_length, double complex** chirp_signal){
+void chirp_matched_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int *chirp_length){
   float chirp_rate = 100;
   float end_time = bandwidth/chirp_rate;
   unsigned int sample_frequency = 5*bandwidth;
   unsigned int time_steps = end_time*sample_frequency;
   *chirp_length = time_steps;
 
-  double* chirp_time_vector = malloc(end_time*sample_frequency*sizeof(double));
-  if(chirp_time_vector == 0){
-    printf("Could not allocate memory for matched time vector.\n");
-    return;
-  }
   int i;
   float last_time = end_time;
   for(i = 0; i < end_time*sample_frequency; i++){
-    chirp_time_vector[i] = last_time;
+    matched_time_vector[i] = last_time;
     last_time -= (float)1/sample_frequency;
   }
 
-  *chirp_signal = malloc(end_time*sample_frequency*sizeof(double complex));
-  if(chirp_signal == 0){
-    printf("Could not allocate memory for matched chirp signal.\n");
-    return;
-  }
-  double complex* signal = *chirp_signal;
   for(i = 0; i < end_time*sample_frequency; i++){
-    signal[i] = cos( 2*PI*(start_frequency*chirp_time_vector[i]+chirp_rate*chirp_time_vector[i]*chirp_time_vector[i] ))-_Complex_I*sin( 2*PI*(start_frequency*chirp_time_vector[i]+chirp_rate*chirp_time_vector[i]*chirp_time_vector[i] ));
+    matched_chirp[i] = cos( 2*PI*(start_frequency*matched_time_vector[i]+chirp_rate*matched_time_vector[i]*matched_time_vector[i] ))-_Complex_I*sin( 2*PI*(start_frequency*chirp_time_vector[i]+chirp_rate*chirp_time_vector[i]*chirp_time_vector[i] ));
   }
 }
 
-double complex* pulse_compressed(unsigned int kernel_length, double complex* kernel, unsigned int nrows, unsigned int ncols, double complex* image){
-  double complex* compressed = malloc(nrows*ncols*sizeof(double complex));
-  if(compressed == 0){
-    printf("Could not allocate memory for pulse-compressed image.\n");
-    return 0;
+void pulse_compressed_signal(unsigned int kernel_length){
+  unsigned int filter_length = 2*kernel_length;
+  fftw_complex* padded_signal = fftw_malloc(filter_length*sizeof(fftw_complex));
+  fftw_complex* padded_kernel = fftw_malloc(filter_length*sizeof(fftw_complex));
+  memset(padded_signal, 0, filter_length*sizeof(fftw_complex));
+  memset(padded_kernel, 0, filter_length*sizeof(fftw_complex));
+  memcpy(padded_signal, chirp_signal, kernel_length*sizeof(fftw_complex));
+  memcpy(padded_kernel, matched_chirp, kernel_length*sizeof(fftw_complex));
+
+  fftw_complex* sigfft = fftw_malloc(filter_length*sizeof(fftw_complex));
+  fftw_complex* matchfft = fftw_malloc(filter_length*sizeof(fftw_complex));
+  fftw_complex* product = fftw_malloc(filter_length*sizeof(fftw_complex));
+
+  fftw_plan sigp = fftw_plan_dft_1d(filter_length, padded_signal, sigfft, FFTW_FORWARD, FFTW_ESTIMATE);
+  fftw_plan matchp = fftw_plan_dft_1d(filter_length, padded_kernel, matchfft, FFTW_FORWARD, FFTW_ESTIMATE);
+  fftw_plan iff = fftw_plan_dft_1d(kernel_length, product, pulse_compressed_waveform, FFTW_BACKWARD, FFTW_ESTIMATE);
+
+  fftw_execute(sigp);
+  fftw_execute(matchp);
+
+  int i;
+  for(i = 0; i < filter_length; i++)
+    product[i] = sigfft[i]*matchfft[i];
+
+  fftw_execute(iff);
+
+  fftw_destroy_plan(sigp);
+  fftw_destroy_plan(matchp);
+  fftw_destroy_plan(iff);
+
+  fftw_free(sigfft);
+  fftw_free(matchfft);
+  fftw_free(product);
+}
+
+void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned int ncols){
+  // Make sure input has valid values.
+  int z;
+  for(z = 0; z < kernel_length; z++){
+    if(isnan(matched_chirp[z]))
+      matched_chirp[z] = 0;
   }
 
+  unsigned int filter_length = nrows + kernel_length;
+  fftw_complex* padded_kernel = fftw_malloc(filter_length*sizeof(fftw_complex));
+  fftw_complex* kernel_fft = fftw_malloc(filter_length*sizeof(fftw_complex));
+  fftw_complex* product = fftw_malloc(filter_length*sizeof(fftw_complex));
+  memset(padded_kernel, 0, filter_length*sizeof(fftw_complex));
+  memset(kernel_fft, 0, filter_length*sizeof(fftw_complex));
+  memcpy(padded_kernel, matched_chirp, kernel_length*sizeof(fftw_complex));
+
+  // Compute fft of filter kernel.
+  fftw_plan kernelfft = fftw_plan_dft_1d(filter_length, padded_kernel, kernel_fft, FFTW_FORWARD, FFTW_ESTIMATE);
+  fftw_execute(kernelfft);
+
+  fftw_complex* column;
+  fftw_complex* output_column;
+  fftw_complex* padded_column = fftw_malloc(filter_length*sizeof(fftw_complex));
+  fftw_complex* padded_column_fft = fftw_malloc(filter_length*sizeof(fftw_complex));
   int i,j,k;
-  int index;
-  double complex* image_column;
-  double complex* compressed_column;
-  for(k = 0; k < ncols; k++){
-    image_column = &image[k*nrows];
-    compressed_column = &compressed[k*nrows];
-    for(i = 0; i < nrows; i++){
-      for(j = 0; j < kernel_length; j++){
-	index = i-j;
-	if(index >= 0 && index < nrows){
-	  compressed_column[i] += image_column[index]*kernel[j];
-	}
-      }
+  for(i = 0; i < ncols; i++){
+    column = &radar_image[i*nrows];
+
+    // Make sure we have valid values.
+    for(k = 0; k < nrows; k++){
+	if(isnan(column[k]))
+	  column[k] = 0;
     }
+
+    output_column = &pulse_compressed_radar_image[i*nrows];
+    memset(padded_column, 0, filter_length*sizeof(fftw_complex));
+    memcpy(padded_column, column, nrows*sizeof(fftw_complex));
+    memset(padded_column_fft, 0, filter_length*sizeof(fftw_complex));
+    fftw_plan colfft = fftw_plan_dft_1d(filter_length, padded_column, padded_column_fft, FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_execute(colfft);
+
+
+    for(j = 0; j < filter_length; j++){
+	product[j] = padded_column_fft[j]*kernel_fft[j];
+    }
+
+    fftw_plan colifft = fftw_plan_dft_1d(nrows, product, output_column, FFTW_BACKWARD, FFTW_ESTIMATE);
+    fftw_execute(colifft);
+
+    fftw_destroy_plan(colfft);
+    fftw_destroy_plan(colifft);
+
   }
-  return compressed;
+
+  fftw_free(product);
+  fftw_free(padded_column_fft);
+  fftw_free(padded_column);
+  fftw_free(padded_kernel);
+
+  fftw_destroy_plan(kernelfft);
 }
 
-double* scene_generator(unsigned int nrows, unsigned int ncols){
-  double* scene = malloc(nrows*ncols*sizeof(double));
-  if(scene == 0){
-    printf("Could not allocate memory for scene.\n");
-    return 0;
-  }
-  memset(scene, 0, nrows*ncols*sizeof(double));
+void scene_generator(unsigned int nrows, unsigned int ncols){
   scene[nrows*ncols/2+nrows/2] = 1;
-  return scene;
 }
 
-void insert_waveform_in_scene(unsigned int waveform_length, double complex* waveform, unsigned int nrows, unsigned int ncols, double* scene, unsigned int* nnrows, unsigned int* nncols, double complex** scene_with_waveform){
+void insert_waveform_in_scene(unsigned int waveform_length, unsigned int nrows, unsigned int ncols, unsigned int* nnrows, unsigned int* nncols){
 	*nncols = ncols;
 	*nnrows = nrows*waveform_length;
 
-	*scene_with_waveform = malloc((*nncols)*(*nnrows)*sizeof(double complex));
-	if(scene_with_waveform == 0){
-	  printf("Could not allocate memory for scene with waveform.\n");
-	  return;
-	}
-
-	double complex* scenew = *scene_with_waveform;
 	int i;
-	for(i = 0; i < (*nncols)*(*nnrows); i++){
-	  scenew[i] = 0;
-	}
-
 	for(i = 0; i < waveform_length; i++){
-	  scenew[(*nncols/2)*(*nnrows)+(*nnrows/2)+i] = (*nnrows)*waveform[i];
+	  scene_with_waveform[(*nncols/2)*(*nnrows)+(*nnrows/2)+i] = (*nnrows)*chirp_signal[i];
 	}
 }
 
-double complex* radar_imager(unsigned int nnrows, unsigned int nncols, double complex* scene, unsigned int altitude, float beamwidth){
+void radar_imager(unsigned int nnrows, unsigned int nncols, unsigned int altitude, float beamwidth){
   unsigned int beamcrossrange = round(altitude*tan(beamwidth));
-
-  double complex* radar_image = malloc(nnrows*nncols*sizeof(double complex));
-  if(radar_image == 0){
-    printf("Could not allocate memory for radar image.\n");
-    return 0;
-  }
-
-  memset(radar_image, 0, nnrows*nncols*sizeof(double complex));
 
   int i,j,k;
   int beam_value;
@@ -405,37 +398,23 @@ double complex* radar_imager(unsigned int nnrows, unsigned int nncols, double co
 	  int dist = sqrt(beam_value*beam_value + k*k);
 	  if(dist <= nnrows){
 	    if(i+beam_value >= 1){
-	      radar_image[i*nnrows+dist] += (nnrows*nnrows)*scene[(i+beam_value)*nnrows+k]/(dist*dist);
+	      radar_image[i*nnrows+dist] += (nnrows*nnrows)*scene_with_waveform[(i+beam_value)*nnrows+k]/(dist*dist);
 	    }
 	  }
 	}
       }
     }
   }
- return radar_image;
 }
 
-void gbp(unsigned int nrows, unsigned int ncols, double complex* raw_data, double complex** sar_image){
-  *sar_image = malloc(nrows*ncols*sizeof(double complex));
-  if(sar_image == 0){
-    printf("Could not allocate memory for SAR image.\n");
-    return;
-  }
-
-  double complex* image = *sar_image;
-
-  int i;
-  for(i = 0; i < nrows*ncols; i++){
-    image[i] = 0;
-  }
-
+void gbp(unsigned int nrows, unsigned int ncols){
   int j,k,l;
   for(j = 0; j < ncols; j++){
     for(k = 0; k < nrows; k++){
       for(l = 0; l < ncols; l++){
 	unsigned int range_index = sqrt((l-j)*(l-j)+k*k);
 	if(range_index < nrows){
-	  image[j*nrows+k] += raw_data[l*nrows+range_index]/nrows;
+	  sar_image[j*nrows+k] += pulse_compressed_radar_image[l*nrows+range_index]/nrows;
 	}
       }
     }
@@ -443,15 +422,15 @@ void gbp(unsigned int nrows, unsigned int ncols, double complex* raw_data, doubl
 
 }
 
-void gbp_fft(unsigned int nrows, unsigned int ncols, double complex* sar_data, double complex** sar_fft){
-  *sar_fft = fftw_malloc(nrows*ncols*sizeof(double complex));
-
-  if(sar_fft == 0){
-    printf("Could not allocate memory for SAR FFT image.\n");
-    return;
+void gbp_fft(unsigned int nrows, unsigned int ncols){
+  int i, j;
+  for(i = 0; i < ncols; i++){
+    for(j = 0; j < nrows; j++){
+	sar_img_shifted[nrows*i+j] = sar_image[nrows*i+j]*pow(-1,i+j);
+    }
   }
 
-  fftw_plan fft = fftw_plan_dft_2d(nrows, ncols, sar_data, *sar_fft, FFTW_FORWARD, FFTW_ESTIMATE);
+  fftw_plan fft = fftw_plan_dft_2d(ncols, nrows, sar_img_shifted, sar_fft, FFTW_FORWARD, FFTW_ESTIMATE);
   fftw_execute(fft);
   fftw_destroy_plan(fft);
 }
