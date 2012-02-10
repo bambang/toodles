@@ -26,6 +26,9 @@ function plot_simulation_data()
     sar_image_data = read("sar_image.dat", radar_cols, 2*radar_rows);
     sar_fft_data = read("sar_fft.dat", radar_cols, 2*radar_rows);
     
+    chirp_fft = read("chirpfft.dat", chirp_length, 2);
+    matched_fft = read("matchedfft.dat", chirp_length, 2);
+    
     complex_chirp_data = chirp_data(:,1)+%i*chirp_data(:,2);
     complex_matched_chirp = matched_chirp_data(:,1)+%i*matched_chirp_data(:,2);
     complex_pulse_compressed = pulse_compressed_data(:,1)+%i*pulse_compressed_data(:,2);
@@ -34,6 +37,9 @@ function plot_simulation_data()
     complex_compressed_data = zeros(radar_rows, radar_cols);
     complex_sar_data = zeros(radar_rows, radar_cols);
     complex_sar_fft = zeros(radar_rows, radar_cols);
+    
+    complex_chirp_fft = chirp_fft(:,1)+%i*chirp_fft(:,2);
+    complex_matched_fft = matched_fft(:,1)+%i*matched_fft(:,2);
     
     for col = [1:radar_cols]
         for row = [1:radar_rows]
@@ -55,7 +61,7 @@ function plot_simulation_data()
     da.x_label.text = "Frequency";
     da.y_label.text = "Amplitude";
     figure("Figure_name", "Chirp FFT");
-    plot(abs(fft(complex_chirp_data)));
+    plot(abs(complex_chirp_fft));
     
     da = gda();
     da.x_label.text = "Time";
@@ -67,7 +73,7 @@ function plot_simulation_data()
     da.x_label.text = "Frequency";
     da.y_label.text = "Amplitude";
     figure("Figure_name", "Matched Chirp FFT");
-    plot(abs(fft(complex_matched_chirp)));
+    plot(abs(complex_matched_fft));
     
     da = gda();
     da.x_label.text = "Time";

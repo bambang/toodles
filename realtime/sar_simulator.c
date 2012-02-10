@@ -15,6 +15,7 @@ void gbp(unsigned int nrows, unsigned int ncols);
 void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned int ncols);
 void gbp_fft(unsigned int nrows, unsigned int ncols);
 void pulse_compressed_signal(unsigned int kernel_length);
+void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output);
 
 #define PI 3.14159265
 // 10MB
@@ -23,6 +24,8 @@ void pulse_compressed_signal(unsigned int kernel_length);
 double scene[MEMORY_SIZE/sizeof(double)];
 double chirp_time_vector[MEMORY_SIZE/sizeof(double)];
 double matched_time_vector[MEMORY_SIZE/sizeof(double)];
+double complex chirp_fft[MEMORY_SIZE/sizeof(double)];
+double complex matched_fft[MEMORY_SIZE/sizeof(double)];
 double complex pulse_compressed_waveform[2*MEMORY_SIZE/sizeof(double complex)];
 double complex chirp_signal[MEMORY_SIZE/sizeof(double complex)];
 double complex matched_chirp[MEMORY_SIZE/sizeof(double complex)];
@@ -34,17 +37,6 @@ double complex sar_fft[MEMORY_SIZE/sizeof(double complex)];
 double complex sar_img_shifted[MEMORY_SIZE/sizeof(double complex)];
 
 int main(int argc, char** argv){
-/*
-  double complex* chirp_signal;
-  double complex* matched_chirp;
-  double complex* scene_with_waveform;
-  double complex* radar_image;
-  double complex* pulse_compressed_radar_image;
-  double complex* sar_image;
-  double complex* sar_fft;
-  double* scene;
-*/
-
   unsigned int chirp_length;
   unsigned int nrows = 0;
   unsigned int ncols = 0;
@@ -94,10 +86,22 @@ int main(int argc, char** argv){
   printf("Chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
+  fft_waveform(chirp_length, chirp_signal, chirp_fft);
+
+  gettimeofday(&ntime, NULL);
+  printf("Chirp FFT generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  gettimeofday(&otime, NULL);
+
   chirp_matched_generator(start_frequency, bandwidth, &chirp_length);
 
   gettimeofday(&ntime, NULL);
   printf("Matched chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  gettimeofday(&otime, NULL);
+  
+  fft_waveform(chirp_length, matched_chirp, matched_fft);
+
+  gettimeofday(&ntime, NULL);
+  printf("Matched chirp FFT generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
   pulse_compressed_signal(chirp_length);
@@ -147,18 +151,31 @@ int main(int argc, char** argv){
   printf("Number of complex points: %i\n",nncols*nnrows);
 
   FILE* dimensions = fopen("dimensions.dat", "w");
-  FILE* scenef = fopen("scene.dat", "w");
-  FILE* chirpf = fopen("chirp.dat", "w");
-  FILE* matchedf = fopen("matched.dat", "w");
-  FILE* compressedf = fopen("compressed.dat", "w");
-  FILE* scene_with_waveformf = fopen("scene_with_waveform.dat", "w");
-  FILE* radar_imagef = fopen("radar_image.dat", "w");
-  FILE* pulse_compressedf = fopen("pulse_compressed_image.dat", "w");
-  FILE* sar_imagef = fopen("sar_image.dat", "w");
-  FILE* sar_fftf = fopen("sar_fft.dat", "w");
+  FILE* scenef = fopen("scene.dat", "wb");
+  FILE* chirpf = fopen("chirp.dat", "wb");
+  FILE* matchedf = fopen("matched.dat", "wb");
+  FILE* chirpfftf = fopen("chirpfft.dat", "wb");
+  FILE* matchedfftf = fopen("matchedfft.dat", "wb");
+  FILE* compressedf = fopen("compressed.dat", "wb");
+  FILE* scene_with_waveformf = fopen("scene_with_waveform.dat", "wb");
+  FILE* radar_imagef = fopen("radar_image.dat", "wb");
+  FILE* pulse_compressedf = fopen("pulse_compressed_image.dat", "wb");
+  FILE* sar_imagef = fopen("sar_image.dat", "wb");
+  FILE* sar_fftf = fopen("sar_fft.dat", "wb");
 
   fprintf(dimensions, "%u\n%u\n%u\n%u\n%u\n%f\n", chirp_length, nrows, ncols, nnrows, nncols, signal_distance);
-
+  /*
+  fwrite(scene, 1, nrows*ncols*sizeof(double), scenef);
+  fwrite(chirp_signal, 1, chirp_length*sizeof(complex double), chirpf);
+  fwrite(matched_chirp, 1, chirp_length*sizeof(complex double), matchedf);
+  fwrite(pulse_compressed_waveform, 1, chirp_length*sizeof(complex double), compressedf);
+  fwrite(scene_with_waveform, 1, nnrows*nncols*sizeof(complex double), scene_with_waveformf);
+  fwrite(radar_image, 1, nnrows*nncols*sizeof(complex double), radar_imagef);
+  fwrite(pulse_compressed_radar_image, 1, nnrows*nncols*sizeof(complex double), pulse_compressedf);
+  fwrite(sar_image, 1, nnrows*nncols*sizeof(complex double), sar_imagef);
+  fwrite(sar_fft, 1, nnrows*nncols*sizeof(double complex), sar_fftf);
+  */
+  
   int i,j;
   for(i = 0; i < ncols; i++){
     for(j = 0; j < nrows; j++){
@@ -166,6 +183,7 @@ int main(int argc, char** argv){
     }
     fprintf(scenef, "\n");
   }
+
 
   for(i = 0; i < chirp_length; i++){
     fprintf(chirpf, "%f\t", creal(chirp_signal[i]));
@@ -180,6 +198,16 @@ int main(int argc, char** argv){
   for(i = 0; i < chirp_length; i++){
     fprintf(compressedf, "%f\t", creal(pulse_compressed_waveform[i]));
     fprintf(compressedf, "%f\n", cimag(pulse_compressed_waveform[i]));
+  }
+
+  for(i = 0; i < chirp_length; i++){
+    fprintf(chirpfftf, "%f\t", creal(chirp_fft[i]));
+    fprintf(chirpfftf, "%f\n", cimag(chirp_fft[i]));
+  }
+
+  for(i = 0; i < chirp_length; i++){
+    fprintf(matchedfftf, "%f\t", creal(matched_fft[i]));
+    fprintf(matchedfftf, "%f\n", cimag(matched_fft[i]));
   }
 
   for(i = 0; i < nncols; i++){
@@ -221,6 +249,7 @@ int main(int argc, char** argv){
     }
     fprintf(sar_fftf, "\n");
   }
+  
 
   fclose(sar_fftf);
   fclose(pulse_compressedf);
@@ -228,6 +257,8 @@ int main(int argc, char** argv){
   fclose(scenef);
   fclose(chirpf);
   fclose(matchedf);
+  fclose(chirpfftf);
+  fclose(matchedfftf);
   fclose(compressedf);
   fclose(scene_with_waveformf);
   fclose(radar_imagef);
@@ -235,8 +266,21 @@ int main(int argc, char** argv){
 }
 
 void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int *chirp_length, double* signal_distance){
-  float chirp_rate = 100;
-  float end_time = bandwidth/chirp_rate;
+  /* 
+   * The following relation holds for a linear chirp signal:
+   * f(t) = f_0 + chirp_rate*t
+   * If a signal of a bandwidth is required, we have:
+   * f_0 + bandwidth = f_0 + chirp_rate*t
+   * bandwidth = chirp_rate*t
+   *
+   * For a bandwidth-time product of 100, we have:
+   * bandwidth*t = 100 => chirp_rate*t^2 = 100
+   * t = sqrt(100/chirp_rate)
+   */
+  float btproduct = 100;
+  float end_time = btproduct/bandwidth;
+  float chirp_rate = bandwidth/end_time;
+
   unsigned int sample_frequency = 5*bandwidth;
   unsigned int time_steps = end_time*sample_frequency;
   *chirp_length = time_steps;
@@ -256,8 +300,10 @@ void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsig
 }
 
 void chirp_matched_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int *chirp_length){
-  float chirp_rate = 100;
-  float end_time = bandwidth/chirp_rate;
+  float btproduct = 100;
+  float end_time = btproduct/bandwidth;
+  float chirp_rate = bandwidth/end_time;
+  
   unsigned int sample_frequency = 5*bandwidth;
   unsigned int time_steps = end_time*sample_frequency;
   *chirp_length = time_steps;
@@ -431,6 +477,12 @@ void gbp_fft(unsigned int nrows, unsigned int ncols){
   }
 
   fftw_plan fft = fftw_plan_dft_2d(ncols, nrows, sar_img_shifted, sar_fft, FFTW_FORWARD, FFTW_ESTIMATE);
+  fftw_execute(fft);
+  fftw_destroy_plan(fft);
+}
+
+void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output){
+  fftw_plan fft = fftw_plan_dft_1d(kernel_length, kernel, output, FFTW_FORWARD, FFTW_ESTIMATE);
   fftw_execute(fft);
   fftw_destroy_plan(fft);
 }
