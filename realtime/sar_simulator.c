@@ -36,6 +36,10 @@ double complex sar_image[MEMORY_SIZE/sizeof(double complex)];
 double complex sar_fft[MEMORY_SIZE/sizeof(double complex)];
 double complex sar_img_shifted[MEMORY_SIZE/sizeof(double complex)];
 
+long unsigned int start_frequency = 0;
+long unsigned int bandwidth = 0;
+float btproduct = 0;
+
 int main(int argc, char** argv){
   unsigned int chirp_length;
   unsigned int nrows = 0;
@@ -43,22 +47,21 @@ int main(int argc, char** argv){
   unsigned int nnrows, nncols;
   int altitude = 0;
   float beamwidth = 0;
-  long unsigned int start_frequency = 0;
-  long unsigned int bandwidth = 0;
   double signal_distance = 0;
 
   struct timeval otime, ntime;
 
-  if(argc != 7){
-    printf("Input: scene_cols scene_rows altitude beamwidth start_frequency bandwidth\n");
+  if(argc != 8){
+    printf("Input: scene_cols scene_rows altitude beamwidth start_frequency bandwidth btproduct\n");
     return;
   }
   ncols = atoi(argv[1]);
   nrows = atoi(argv[2]);
   altitude = atoi(argv[3]);
   beamwidth = atoi(argv[4])*PI/180;
-  start_frequency = atoi(argv[5]);
-  bandwidth = atoi(argv[6]);
+  start_frequency = atol(argv[5]);
+  bandwidth = atol(argv[6]);
+  btproduct = atof(argv[7]);
 
   gettimeofday(&otime, NULL);
 
@@ -99,7 +102,7 @@ int main(int argc, char** argv){
   gettimeofday(&ntime, NULL);
   printf("Matched chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
-  
+ 
   fft_waveform(chirp_length, matched_chirp, matched_fft);
 
   gettimeofday(&ntime, NULL);
@@ -151,6 +154,7 @@ int main(int argc, char** argv){
   printf("Start frequency: %lu\n", start_frequency);
   printf("Bandwidth: %lu\n", bandwidth);
   printf("Number of complex points: %i\n",nncols*nnrows);
+  printf("Signal distance: %fm\n", signal_distance);
 
   FILE* dimensions = fopen("dimensions.dat", "w");
   FILE* scenef = fopen("scene.dat", "wb");
@@ -279,18 +283,21 @@ void chirp_generator(long unsigned int start_frequency, long unsigned int bandwi
    * bandwidth*t = 100 => chirp_rate*t^2 = 100
    * t = sqrt(100/chirp_rate)
    */
-  float btproduct = 300;
-  float end_time = btproduct/bandwidth;
-  float chirp_rate = bandwidth/end_time;
+  //float btproduct = 20;
+  double end_time = btproduct/bandwidth;
+  double chirp_rate = bandwidth/end_time;
 
-  unsigned int sample_frequency = 5*bandwidth;
-  unsigned int time_steps = end_time*sample_frequency;
+  printf("BT-product: %f\n", btproduct);
+  printf("Signal time duration: %es\n", end_time);
+
+  unsigned long int sample_frequency = 5*bandwidth;
+  unsigned long int time_steps = end_time*sample_frequency;
   *chirp_length = time_steps;
 
   *signal_distance = end_time*300000000;
 
   int i;
-  float last_time = 0;
+  double last_time = 0;
   for(i = 0; i < end_time*sample_frequency; i++){
     chirp_time_vector[i] = last_time;
     last_time += (float)1/sample_frequency;
@@ -302,16 +309,16 @@ void chirp_generator(long unsigned int start_frequency, long unsigned int bandwi
 }
 
 void chirp_matched_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int *chirp_length){
-  float btproduct = 300;
+  //float btproduct = 20;
   float end_time = btproduct/bandwidth;
   float chirp_rate = bandwidth/end_time;
   
-  unsigned int sample_frequency = 5*bandwidth;
-  unsigned int time_steps = end_time*sample_frequency;
+  unsigned long int sample_frequency = 5*bandwidth;
+  unsigned long int time_steps = end_time*sample_frequency;
   *chirp_length = time_steps;
 
   int i;
-  float last_time = end_time;
+  double last_time = end_time;
   for(i = 0; i < end_time*sample_frequency; i++){
     matched_time_vector[i] = last_time;
     last_time -= (float)1/sample_frequency;

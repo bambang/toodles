@@ -82,37 +82,34 @@ function plot_simulation_data()
     plot(complex_pulse_compressed);
     
     da = gda();
-    da.x_label.text = "Range";
-    da.y_label.text = "Crossrange";
+    da.x_label.text = "Range (m)";
+    da.y_label.text = "Crossrange (m)";
     figure("Figure_name", "Scene with waveform");
-    plot3d([0:distance_step:end_row_distance-distance_step], [0:distance_step:end_col_distance-distance_step], distance_step*abs(complex_waveform_scene_data));
+    plot3d([0:distance_step:end_row_distance-distance_step], [0:distance_step:end_col_distance-distance_step], abs(complex_waveform_scene_data));
     
     da = gda();
-    da.x_label.text = "Range";
-    da.y_label.text = "Crossrange";
+    da.x_label.text = "Range (m)";
+    da.y_label.text = "Crossrange (m)";
     figure("Figure_name", "Radar image");
-    plot3d([0:distance_step:end_row_distance-distance_step], [0:distance_step:end_col_distance-distance_step], distance_step*abs(complex_image_data));
+    plot3d([0:distance_step:end_row_distance-distance_step], [0:distance_step:end_col_distance-distance_step], abs(complex_image_data));
     
     da = gda();
-    da.x_label.text = "Range";
-    da.y_label.text = "Crossrange";
+    da.x_label.text = "Range (m)";
+    da.y_label.text = "Crossrange (m)";
     figure("Figure_name", "Pulse-compressed Radar image");
-    plot3d([0:distance_step:end_row_distance-distance_step], [0:distance_step:end_col_distance-distance_step], distance_step*abs(complex_compressed_data));
+    plot3d([0:distance_step:end_row_distance-distance_step], [0:distance_step:end_col_distance-distance_step], abs(complex_compressed_data));
     
     da = gda();
-    da.x_label.text = "Range";
-    da.y_label.text = "Crossrange";
+    da.x_label.text = "Range (m)";
+    da.y_label.text = "Crossrange (m)";
     figure("Figure_name", "SAR image");
-    plot3d([0:distance_step:end_row_distance-distance_step], [0:distance_step:end_col_distance-distance_step], distance_step*abs(complex_sar_data));
-    
-    for i = [1:radar_cols]
-        for j = [1:radar_rows]
-            if isnan(complex_sar_data(j,i))
-                complex_sar_data(j,i) = 0;
-            end
-        end
-    end
-    
+    plot3d([0:distance_step:end_row_distance-distance_step], [0:distance_step:end_col_distance-distance_step], abs(complex_sar_data));
+//    
+//    da = gda();
+//    da.x_label.text = "Range frequency";
+//    da.y_label.text = "Crossrange frequency";
+//    figure("Figure_name", "SAR image FFT");
+//    mesh(abs(fftshift(fft2(complex_sar_data))));
     
     da = gda();
     da.x_label.text = "Range frequency";
