@@ -6,8 +6,8 @@
 #include <fftw3.h>
 #include <sys/time.h>
 
-void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int* chirp_length,  double* signal_distance);
-void chirp_matched_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int* chirp_length);
+void chirp_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int* chirp_length,  double* signal_distance);
+void chirp_matched_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int* chirp_length);
 void scene_generator(unsigned int nrows, unsigned int ncols);
 void insert_waveform_in_scene(unsigned int waveform_length, unsigned int nrows, unsigned int ncols, unsigned int* nnrows, unsigned int* nncols);
 void radar_imager(unsigned int nnrows, unsigned int nncols, unsigned int altitude, float beamwidth);
@@ -43,8 +43,8 @@ int main(int argc, char** argv){
   unsigned int nnrows, nncols;
   int altitude = 0;
   float beamwidth = 0;
-  unsigned int start_frequency = 0;
-  unsigned int bandwidth = 0;
+  long unsigned int start_frequency = 0;
+  long unsigned int bandwidth = 0;
   double signal_distance = 0;
 
   struct timeval otime, ntime;
@@ -87,6 +87,8 @@ int main(int argc, char** argv){
   gettimeofday(&otime, NULL);
 
   fft_waveform(chirp_length, chirp_signal, chirp_fft);
+
+  gettimeofday(&ntime, NULL);
 
   gettimeofday(&ntime, NULL);
   printf("Chirp FFT generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -146,8 +148,8 @@ int main(int argc, char** argv){
   printf("Number of columns in final scene: %i\n", nncols);
   printf("Platform altitude: %i\n", altitude);
   printf("Antenna beamwidth: %f\n", beamwidth);
-  printf("Start frequency: %i\n", start_frequency);
-  printf("Bandwidth: %i\n", bandwidth);
+  printf("Start frequency: %lu\n", start_frequency);
+  printf("Bandwidth: %lu\n", bandwidth);
   printf("Number of complex points: %i\n",nncols*nnrows);
 
   FILE* dimensions = fopen("dimensions.dat", "w");
@@ -265,7 +267,7 @@ int main(int argc, char** argv){
   fclose(sar_imagef);
 }
 
-void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int *chirp_length, double* signal_distance){
+void chirp_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int *chirp_length, double* signal_distance){
   /* 
    * The following relation holds for a linear chirp signal:
    * f(t) = f_0 + chirp_rate*t
@@ -277,7 +279,7 @@ void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsig
    * bandwidth*t = 100 => chirp_rate*t^2 = 100
    * t = sqrt(100/chirp_rate)
    */
-  float btproduct = 100;
+  float btproduct = 300;
   float end_time = btproduct/bandwidth;
   float chirp_rate = bandwidth/end_time;
 
@@ -299,8 +301,8 @@ void chirp_generator(unsigned int start_frequency, unsigned int bandwidth, unsig
   }
 }
 
-void chirp_matched_generator(unsigned int start_frequency, unsigned int bandwidth, unsigned int *chirp_length){
-  float btproduct = 100;
+void chirp_matched_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int *chirp_length){
+  float btproduct = 300;
   float end_time = btproduct/bandwidth;
   float chirp_rate = bandwidth/end_time;
   
@@ -374,14 +376,12 @@ void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned i
   // Compute fft of filter kernel.
   fftw_plan kernelfft = fftw_plan_dft_1d(filter_length, padded_kernel, kernel_fft, FFTW_FORWARD, FFTW_ESTIMATE);
   fftw_execute(kernelfft);
-
-  fftw_complex* column;
   fftw_complex* output_column;
   fftw_complex* padded_column = fftw_malloc(filter_length*sizeof(fftw_complex));
   fftw_complex* padded_column_fft = fftw_malloc(filter_length*sizeof(fftw_complex));
   int i,j,k;
   for(i = 0; i < ncols; i++){
-    column = &radar_image[i*nrows];
+    double complex* column = &radar_image[i*nrows];
 
     // Make sure we have valid values.
     for(k = 0; k < nrows; k++){
