@@ -16,9 +16,9 @@ void gbp_fft(unsigned int nrows, unsigned int ncols);
 void pulse_compressed_signal(unsigned int kernel_length);
 void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output);
 void filter_dc(unsigned int nrows, unsigned int ncols);
+void write_to_file();
 
 #define PI 3.14159265
-// 10MB
 #define MEMORY_SIZE 104857600
 
 double chirp_time_vector[MEMORY_SIZE/sizeof(double)];
@@ -37,26 +37,21 @@ double complex sar_img_shifted[MEMORY_SIZE/sizeof(double complex)];
 
 long unsigned int start_frequency = 0;
 long unsigned int bandwidth = 0;
+unsigned int chirp_length, nnrows, nncols;
 float btproduct = 0;
+int altitude = 0;
+float beamwidth = 0;
+double signal_distance = 0;
 
 int main(int argc, char** argv){
-  unsigned int chirp_length;
-  unsigned int nnrows, nncols;
-  int altitude = 0;
-  float beamwidth = 0;
-  double signal_distance = 0;
-
-  struct timeval otime, ntime;
-
-  if(argc != 6){
-    printf("Input: altitude beamwidth start_frequency bandwidth btproduct\n");
+  printf("Please enter the following: beamwidth start_frequency bandwidth btproduct\n");
+  int ret = scanf("%f %li %li %f", &beamwidth, &start_frequency, &bandwidth, &btproduct);
+  if(ret == EOF){
+    printf("Invalid input detected, closing.\n");
     return;
   }
-  altitude = atoi(argv[1]);
-  beamwidth = atoi(argv[2])*PI/180;
-  start_frequency = atol(argv[3]);
-  bandwidth = atol(argv[4]);
-  btproduct = atof(argv[5]);
+
+  struct timeval otime, ntime;
 
   gettimeofday(&otime, NULL);
 
@@ -109,6 +104,15 @@ int main(int argc, char** argv){
   printf("Scene with waveform generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
+  printf("Scene range: %fm\n", signal_distance*(nnrows/chirp_length));
+  printf("Scene azimuth length: %fm\n", signal_distance*(nncols/chirp_length));
+  printf("Please input SAR platform height: ");
+  ret = scanf("%d", &altitude);
+  if(ret == EOF){
+    printf("Invalid input detected, closing.\n");
+    return;
+  }
+
   radar_imager(nnrows, nncols, altitude, beamwidth);
 
   gettimeofday(&ntime, NULL);
@@ -144,6 +148,10 @@ int main(int argc, char** argv){
   printf("Number of complex points: %i\n",nncols*nnrows);
   printf("Signal distance: %fm\n", signal_distance);
 
+  write_to_file();
+}
+
+void write_to_file(){
   FILE* dimensions = fopen("dimensions.dat", "w");
   FILE* chirpf = fopen("chirp.dat", "wb");
   FILE* matchedf = fopen("matched.dat", "wb");
@@ -160,6 +168,8 @@ int main(int argc, char** argv){
   /*
   fwrite(chirp_signal, 1, chirp_length*sizeof(complex double), chirpf);
   fwrite(matched_chirp, 1, chirp_length*sizeof(complex double), matchedf);
+  fwrite(chirp_fft, 1, chirp_length*sizeof(complex double), chirpfftf);
+  fwrite(matched_fft, 1, chirp_length*sizeof(complex double), matchedfftf);
   fwrite(pulse_compressed_waveform, 1, chirp_length*sizeof(complex double), compressedf);
   fwrite(scene_with_waveform, 1, nnrows*nncols*sizeof(complex double), scene_with_waveformf);
   fwrite(radar_image, 1, nnrows*nncols*sizeof(complex double), radar_imagef);
