@@ -57,6 +57,17 @@ char mode;
 char radar_file[255];
 
 int main(int argc, char** argv){
+  memset(chirp_time_vector, 0, MEMORY_SIZE);
+  memset(matched_time_vector, 0, MEMORY_SIZE);
+  memset(chirp_signal, 0, MEMORY_SIZE);
+  memset(matched_chirp, 0, MEMORY_SIZE);
+  memset(scene_with_waveform, 0, MEMORY_SIZE);
+  memset(radar_image, 0, MEMORY_SIZE);
+  memset(pulse_compressed_radar_image, 0, MEMORY_SIZE);
+  memset(sar_image, 0, MEMORY_SIZE);
+  memset(sar_fft, 0, MEMORY_SIZE);
+  memset(pulse_compressed_waveform, 0, MEMORY_SIZE);
+
   printf("Do you wish to simulate or process radar data? (s/p): ");
   mode = getchar();
   int ret;
@@ -90,17 +101,6 @@ int main(int argc, char** argv){
     printf("Mode not recognized - exiting.\n");
     return;
   }
-
-  memset(chirp_time_vector, 0, MEMORY_SIZE);
-  memset(matched_time_vector, 0, MEMORY_SIZE);
-  memset(chirp_signal, 0, MEMORY_SIZE);
-  memset(matched_chirp, 0, MEMORY_SIZE);
-  memset(scene_with_waveform, 0, MEMORY_SIZE);
-  memset(radar_image, 0, MEMORY_SIZE);
-  memset(pulse_compressed_radar_image, 0, MEMORY_SIZE);
-  memset(sar_image, 0, MEMORY_SIZE);
-  memset(sar_fft, 0, MEMORY_SIZE);
-  memset(pulse_compressed_waveform, 0, MEMORY_SIZE);
 
   printf("BT-product: %f\n", btproduct);
   printf("Chirp length: %u\n", chirp_length);
@@ -363,6 +363,7 @@ void chirp_matched_generator(long unsigned int start_frequency, long unsigned in
 
 void pulse_compressed_signal(unsigned int kernel_length){
   unsigned int filter_length = 2*kernel_length;
+  filter_length = pow(2, ceil(log(filter_length)/log(2)));
 
   fftw_complex* padded_signal = fftw_malloc(filter_length*sizeof(fftw_complex));
   fftw_complex* padded_kernel = fftw_malloc(filter_length*sizeof(fftw_complex));
@@ -406,6 +407,7 @@ void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned i
   }
 
   unsigned int filter_length = nrows + kernel_length;
+  filter_length = pow(2, ceil(log(filter_length)/log(2)));
 
   fftw_complex* padded_kernel = fftw_malloc(filter_length*sizeof(fftw_complex));
   fftw_complex* kernel_fft = fftw_malloc(filter_length*sizeof(fftw_complex));
