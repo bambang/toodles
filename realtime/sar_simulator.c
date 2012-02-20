@@ -1,3 +1,10 @@
+/*
+ * This SAR simulation and processing software is written by Alexander Rajula.
+ * The software is free to use and modify.
+ *
+ * You may contact me at alexander@rajula.org
+ */
+
 #include <math.h>
 #include <complex.h>
 #include <stdlib.h>
@@ -19,6 +26,7 @@ void filter_dc(unsigned int nrows, unsigned int ncols);
 void write_to_file();
 void simulate();
 void process_data();
+int read_radar_file();
 
 #define PI 3.14159265
 #define MEMORY_SIZE 104857600
@@ -46,23 +54,41 @@ int altitude = 0;
 float beamwidth = 0;
 double signal_distance = 0;
 char mode;
+char radar_file[255];
 
 int main(int argc, char** argv){
   printf("Do you wish to simulate or process radar data? (s/p): ");
   mode = getchar();
-  if(mode != 's'){
+  int ret;
+  if(mode == 'p'){
     printf("Simulation is the only option for now.\n");
     return;
+
+    printf("Please enter file name of raw data: ");
+    ret = scanf("%s", radar_file);
+    if(ret == EOF){
+	printf("Invalid input detected, closing.\n");
+	return;
+    }
+    if(!read_radar_file()){
+	printf("Failed to read radar data, closing.\n");
+	return;
+    }
+    process_data();
   }
-  if(mode == 's'){
+  else if(mode == 's'){
     printf("Please enter the following: beamwidth start_frequency bandwidth btproduct\n");
-    int ret = scanf("%f %li %li %f", &beamwidth, &start_frequency, &bandwidth, &btproduct);
+    ret = scanf("%f %li %li %f", &beamwidth, &start_frequency, &bandwidth, &btproduct);
     if(ret == EOF){
       printf("Invalid input detected, closing.\n");
       return;
     }
     simulate();
     process_data();
+  }
+  else{
+    printf("Mode not recognized - exiting.\n");
+    return;
   }
 
   memset(chirp_time_vector, 0, MEMORY_SIZE);
@@ -88,6 +114,15 @@ int main(int argc, char** argv){
   printf("Signal distance: %fm\n", signal_distance);
 
   write_to_file();
+}
+
+int read_radar_file(){
+  FILE* fp = fopen(radar_file, "r");
+  if(fp == NULL)
+    return -1;
+
+  // Read and process data in some way.
+  // Finish later, depends on how the radar data is stored.
 }
 
 void simulate(){
