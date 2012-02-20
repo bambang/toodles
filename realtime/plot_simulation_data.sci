@@ -1,5 +1,7 @@
 function [complex_chirp_data, complex_matched_chirp, complex_pulse_compressed, complex_waveform_scene_data, complex_image_data, complex_compressed_data, complex_sar_data, complex_sar_fft] = plot_simulation_data()
     
+    stacksize('max');
+    
     dimensions = read("dimensions.dat", 4, 1);
     chirp_length = dimensions(1);
     radar_rows = dimensions(2);

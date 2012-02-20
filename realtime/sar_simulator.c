@@ -17,9 +17,12 @@ void pulse_compressed_signal(unsigned int kernel_length);
 void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output);
 void filter_dc(unsigned int nrows, unsigned int ncols);
 void write_to_file();
+void simulate();
+void process_data();
 
 #define PI 3.14159265
 #define MEMORY_SIZE 104857600
+#define C 300000000
 
 double chirp_time_vector[MEMORY_SIZE/sizeof(double)];
 double matched_time_vector[MEMORY_SIZE/sizeof(double)];
@@ -42,18 +45,25 @@ float btproduct = 0;
 int altitude = 0;
 float beamwidth = 0;
 double signal_distance = 0;
+char mode;
 
 int main(int argc, char** argv){
-  printf("Please enter the following: beamwidth start_frequency bandwidth btproduct\n");
-  int ret = scanf("%f %li %li %f", &beamwidth, &start_frequency, &bandwidth, &btproduct);
-  if(ret == EOF){
-    printf("Invalid input detected, closing.\n");
+  printf("Do you wish to simulate or process radar data? (s/p): ");
+  mode = getchar();
+  if(mode != 's'){
+    printf("Simulation is the only option for now.\n");
     return;
   }
-
-  struct timeval otime, ntime;
-
-  gettimeofday(&otime, NULL);
+  if(mode == 's'){
+    printf("Please enter the following: beamwidth start_frequency bandwidth btproduct\n");
+    int ret = scanf("%f %li %li %f", &beamwidth, &start_frequency, &bandwidth, &btproduct);
+    if(ret == EOF){
+      printf("Invalid input detected, closing.\n");
+      return;
+    }
+    simulate();
+    process_data();
+  }
 
   memset(chirp_time_vector, 0, MEMORY_SIZE);
   memset(matched_time_vector, 0, MEMORY_SIZE);
@@ -65,6 +75,25 @@ int main(int argc, char** argv){
   memset(sar_image, 0, MEMORY_SIZE);
   memset(sar_fft, 0, MEMORY_SIZE);
   memset(pulse_compressed_waveform, 0, MEMORY_SIZE);
+
+  printf("BT-product: %f\n", btproduct);
+  printf("Chirp length: %u\n", chirp_length);
+  printf("Number of rows in final scene: %i\n", nnrows);
+  printf("Number of columns in final scene: %i\n", nncols);
+  printf("Platform altitude: %i\n", altitude);
+  printf("Antenna beamwidth: %f\n", beamwidth);
+  printf("Start frequency: %lu\n", start_frequency);
+  printf("Bandwidth: %lu\n", bandwidth);
+  printf("Number of complex points: %i\n",nncols*nnrows);
+  printf("Signal distance: %fm\n", signal_distance);
+
+  write_to_file();
+}
+
+void simulate(){
+  struct timeval otime, ntime;
+
+  gettimeofday(&otime, NULL);
 
   chirp_generator(start_frequency, bandwidth, &chirp_length, &signal_distance);
 
@@ -107,7 +136,7 @@ int main(int argc, char** argv){
   printf("Scene range: %fm\n", signal_distance*(nnrows/chirp_length));
   printf("Scene azimuth length: %fm\n", signal_distance*(nncols/chirp_length));
   printf("Please input SAR platform height: ");
-  ret = scanf("%d", &altitude);
+  int ret = scanf("%d", &altitude);
   if(ret == EOF){
     printf("Invalid input detected, closing.\n");
     return;
@@ -117,6 +146,12 @@ int main(int argc, char** argv){
 
   gettimeofday(&ntime, NULL);
   printf("Radar image generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  gettimeofday(&otime, NULL);
+}
+
+void process_data(){
+  struct timeval otime, ntime;
+
   gettimeofday(&otime, NULL);
 
   pulse_compressed(chirp_length, nnrows, nncols);
@@ -136,19 +171,8 @@ int main(int argc, char** argv){
   gettimeofday(&ntime, NULL);
   printf("FFT generation of GBP image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
 
-  filter_dc(nnrows, nncols);
-
-  printf("Chirp length: %u\n", chirp_length);
-  printf("Number of rows in final scene: %i\n", nnrows);
-  printf("Number of columns in final scene: %i\n", nncols);
-  printf("Platform altitude: %i\n", altitude);
-  printf("Antenna beamwidth: %f\n", beamwidth);
-  printf("Start frequency: %lu\n", start_frequency);
-  printf("Bandwidth: %lu\n", bandwidth);
-  printf("Number of complex points: %i\n",nncols*nnrows);
-  printf("Signal distance: %fm\n", signal_distance);
-
-  write_to_file();
+  if(mode == 's')
+    filter_dc(nnrows, nncols);
 }
 
 void write_to_file(){
@@ -259,28 +283,16 @@ void write_to_file(){
 }
 
 void chirp_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int *chirp_length, double* signal_distance){
-  /* 
-   * The following relation holds for a linear chirp signal:
-   * f(t) = f_0 + chirp_rate*t
-   * If a signal of a bandwidth is required, we have:
-   * f_0 + bandwidth = f_0 + chirp_rate*t
-   * bandwidth = chirp_rate*t
-   *
-   * For a bandwidth-time product of 100, we have:
-   * bandwidth*t = 100 => chirp_rate*t^2 = 100
-   * t = sqrt(100/chirp_rate)
-   */
   double end_time = btproduct/bandwidth;
   double chirp_rate = bandwidth/end_time;
 
-  printf("BT-product: %f\n", btproduct);
   printf("Signal time duration: %es\n", end_time);
 
   unsigned long int sample_frequency = 5*bandwidth;
   unsigned long int time_steps = end_time*sample_frequency;
   *chirp_length = time_steps;
 
-  *signal_distance = end_time*300000000;
+  *signal_distance = end_time*C;
 
   int i;
   double last_time = (float)10/sample_frequency;
@@ -427,7 +439,7 @@ void insert_waveform_in_scene(unsigned int waveform_length, unsigned int* nnrows
 void radar_imager(unsigned int nnrows, unsigned int nncols, unsigned int altitude, float beamwidth){
   unsigned int beamcrossrange = round(altitude*tan(beamwidth));
 
-  int i,j,k;
+  unsigned int i,j,k;
   int beam_value;
   for(i = 0; i < nncols; i++){
     for(j = 0; j < 2*beamcrossrange; j++){
