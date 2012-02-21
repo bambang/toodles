@@ -23,7 +23,7 @@ void gbp_fft(unsigned int nrows, unsigned int ncols);
 void pulse_compressed_signal(unsigned int kernel_length);
 void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output);
 void filter_dc(unsigned int nrows, unsigned int ncols);
-void write_to_file();
+int write_to_file();
 void simulate();
 void process_data();
 int read_radar_file();
@@ -88,12 +88,38 @@ int main(int argc, char** argv){
     process_data();
   }
   else if(mode == 's'){
-    printf("Please enter the following: beamwidth start_frequency bandwidth btproduct\n");
-    ret = scanf("%f %li %li %f", &beamwidth, &start_frequency, &bandwidth, &btproduct);
-    if(ret == EOF){
-      printf("Invalid input detected, closing.\n");
-      return;
+    printf("Antenna azimuth beamwidth: ");
+    ret = scanf("%f", &beamwidth);
+    
+    if(beamwidth < 1){
+	printf("Too small beamwidth entered, closing.\n");
+	return;
     }
+    
+    printf("Chirp start frequency: ");
+    ret = scanf("%li", &start_frequency);
+
+    if(start_frequency < 0){
+	printf("Negative start frequency entered, closing.\n");
+	return;
+    }
+
+    printf("Chirp bandwidth: ");
+    ret = scanf("%li", &bandwidth);
+
+    if(bandwidth < 0){
+	printf("Negative bandwidth entered, closing.\n");
+	return;
+    }
+
+    printf("Chirp bandwidth-time product: ");
+    ret = scanf("%f", &btproduct);
+    
+    if(btproduct < 1){
+	printf("Too small bandwidth-time product entered, closing.\n");
+	return;
+    }
+
     simulate();
     process_data();
   }
@@ -113,7 +139,7 @@ int main(int argc, char** argv){
   printf("Number of complex points: %i\n",nncols*nnrows);
   printf("Signal distance: %fm\n", signal_distance);
 
-  write_to_file();
+  ret = write_to_file();
 }
 
 int read_radar_file(){
@@ -210,99 +236,156 @@ void process_data(){
     filter_dc(nnrows, nncols);
 }
 
-void write_to_file(){
+int write_to_file(){
+  char fmode = 0;
+  int ret = 0;
+
+  do{
+    fmode = getchar();
+  }while(fmode != '\n');
+
+  printf("Would you like to write data in human-readable or binary format (h/b): ");
+  do{
+    ret = scanf("%c", &fmode);
+  }while((fmode != 'h') && (fmode != 'b'));
+
   FILE* dimensions = fopen("dimensions.dat", "w");
+  if(dimensions == NULL){
+    printf("Could not open dimensions.dat for writing - exiting.\n");
+    return -1;
+  }
   FILE* chirpf = fopen("chirp.dat", "wb");
+  if(chirpf == NULL){
+    printf("Could not open chirp.dat for writing - exiting.\n");
+    return -1;
+  }
   FILE* matchedf = fopen("matched.dat", "wb");
+  if(matchedf == NULL){
+    printf("Could not open matched.dat for writing - exiting.\n");
+    return -1;
+  }
   FILE* chirpfftf = fopen("chirpfft.dat", "wb");
+  if(chirpfftf == NULL){
+    printf("Could not open chirpfft.dat for writing - exiting.\n");
+    return -1;
+  }
   FILE* matchedfftf = fopen("matchedfft.dat", "wb");
+  if(matchedfftf == NULL){
+    printf("Could not open matchedfft.dat for writing - exiting.\n");
+    return -1;
+  }
   FILE* compressedf = fopen("compressed.dat", "wb");
+  if(compressedf == NULL){
+    printf("Could not open compressed.dat for writing - exiting.\n");
+    return -1;
+  }
   FILE* scene_with_waveformf = fopen("scene_with_waveform.dat", "wb");
+  if(scene_with_waveformf == NULL){
+    printf("Could not open scene_with_waveform.dat for writing - exiting.\n");
+    return -1;
+  }
   FILE* radar_imagef = fopen("radar_image.dat", "wb");
+  if(radar_imagef == NULL){
+    printf("Could not open radar_image.dat for writing - exiting.\n");
+    return -1;
+  }
   FILE* pulse_compressedf = fopen("pulse_compressed_image.dat", "wb");
+  if(pulse_compressedf == NULL){
+   printf("Could not open pulse_compressed_image.dat for writing - exiting.\n");
+   return -1;
+  }
   FILE* sar_imagef = fopen("sar_image.dat", "wb");
+  if(sar_imagef == NULL){
+    printf("Could not open sar_image.dat for writing - exiting.\n");
+    return -1;
+  }
   FILE* sar_fftf = fopen("sar_fft.dat", "wb");
+  if(sar_fftf == NULL){
+    printf("Could not open sar_fft.dat for writing - exiting.\n");
+    return -1;
+  }
 
   fprintf(dimensions, "%u\n%u\n%u\n%f\n", chirp_length, nnrows, nncols, signal_distance);
-  /*
-  fwrite(chirp_signal, 1, chirp_length*sizeof(complex double), chirpf);
-  fwrite(matched_chirp, 1, chirp_length*sizeof(complex double), matchedf);
-  fwrite(chirp_fft, 1, chirp_length*sizeof(complex double), chirpfftf);
-  fwrite(matched_fft, 1, chirp_length*sizeof(complex double), matchedfftf);
-  fwrite(pulse_compressed_waveform, 1, chirp_length*sizeof(complex double), compressedf);
-  fwrite(scene_with_waveform, 1, nnrows*nncols*sizeof(complex double), scene_with_waveformf);
-  fwrite(radar_image, 1, nnrows*nncols*sizeof(complex double), radar_imagef);
-  fwrite(pulse_compressed_radar_image, 1, nnrows*nncols*sizeof(complex double), pulse_compressedf);
-  fwrite(sar_image, 1, nnrows*nncols*sizeof(complex double), sar_imagef);
-  fwrite(sar_fft, 1, nnrows*nncols*sizeof(double complex), sar_fftf);
-  */
   
-  int i,j;
-  for(i = 0; i < chirp_length; i++){
-    fprintf(chirpf, "%f\t", creal(chirp_signal[i]));
-    fprintf(chirpf, "%f\n", cimag(chirp_signal[i]));
+  if(fmode == 'b'){
+	    ret = fwrite(chirp_signal, 1, chirp_length*sizeof(complex double), chirpf);
+	    ret = fwrite(matched_chirp, 1, chirp_length*sizeof(complex double), matchedf);
+	    ret = fwrite(chirp_fft, 1, chirp_length*sizeof(complex double), chirpfftf);
+	    ret = fwrite(matched_fft, 1, chirp_length*sizeof(complex double), matchedfftf);
+	    ret = fwrite(pulse_compressed_waveform, 1, chirp_length*sizeof(complex double), compressedf);
+	    ret = fwrite(scene_with_waveform, 1, nnrows*nncols*sizeof(complex double), scene_with_waveformf);
+	    ret = fwrite(radar_image, 1, nnrows*nncols*sizeof(complex double), radar_imagef);
+	    ret = fwrite(pulse_compressed_radar_image, 1, nnrows*nncols*sizeof(complex double), pulse_compressedf);
+	    ret = fwrite(sar_image, 1, nnrows*nncols*sizeof(complex double), sar_imagef);
+	    ret = fwrite(sar_fft, 1, nnrows*nncols*sizeof(double complex), sar_fftf);
   }
+  else{
+	  int i,j;
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(chirpf, "%f\t", creal(chirp_signal[i]));
+	    fprintf(chirpf, "%f\n", cimag(chirp_signal[i]));
+	  }
 
-  for(i = 0; i < chirp_length; i++){
-    fprintf(matchedf, "%f\t", creal(matched_chirp[i]));
-    fprintf(matchedf, "%f\n", cimag(matched_chirp[i]));
-  }
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(matchedf, "%f\t", creal(matched_chirp[i]));
+	    fprintf(matchedf, "%f\n", cimag(matched_chirp[i]));
+	  }
 
-  for(i = 0; i < chirp_length; i++){
-    fprintf(compressedf, "%f\t", creal(pulse_compressed_waveform[i]));
-    fprintf(compressedf, "%f\n", cimag(pulse_compressed_waveform[i]));
-  }
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(compressedf, "%f\t", creal(pulse_compressed_waveform[i]));
+	    fprintf(compressedf, "%f\n", cimag(pulse_compressed_waveform[i]));
+	  }
 
-  for(i = 0; i < chirp_length; i++){
-    fprintf(chirpfftf, "%f\t", creal(chirp_fft[i]));
-    fprintf(chirpfftf, "%f\n", cimag(chirp_fft[i]));
-  }
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(chirpfftf, "%f\t", creal(chirp_fft[i]));
+	    fprintf(chirpfftf, "%f\n", cimag(chirp_fft[i]));
+	  }
 
-  for(i = 0; i < chirp_length; i++){
-    fprintf(matchedfftf, "%f\t", creal(matched_fft[i]));
-    fprintf(matchedfftf, "%f\n", cimag(matched_fft[i]));
-  }
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(matchedfftf, "%f\t", creal(matched_fft[i]));
+	    fprintf(matchedfftf, "%f\n", cimag(matched_fft[i]));
+	  }
 
-  for(i = 0; i < nncols; i++){
-    for(j = 0; j < nnrows; j++){
-      fprintf(scene_with_waveformf, "%g\t", creal(scene_with_waveform[i*nnrows+j]));
-      fprintf(scene_with_waveformf, "%g\t", cimag(scene_with_waveform[i*nnrows+j]));
-    }
-    fprintf(scene_with_waveformf, "\n");
-  }
+	  for(i = 0; i < nncols; i++){
+	    for(j = 0; j < nnrows; j++){
+	      fprintf(scene_with_waveformf, "%g\t", creal(scene_with_waveform[i*nnrows+j]));
+	      fprintf(scene_with_waveformf, "%g\t", cimag(scene_with_waveform[i*nnrows+j]));
+	    }
+	    fprintf(scene_with_waveformf, "\n");
+	  }
 
-  for(i = 0; i < nncols; i++){
-    for(j = 0; j < nnrows; j++){
-      fprintf(radar_imagef, "%f\t", creal(radar_image[i*nnrows+j]));
-      fprintf(radar_imagef, "%f\t", cimag(radar_image[i*nnrows+j]));
-    }
-    fprintf(radar_imagef, "\n");
-  }
+	  for(i = 0; i < nncols; i++){
+	    for(j = 0; j < nnrows; j++){
+	      fprintf(radar_imagef, "%f\t", creal(radar_image[i*nnrows+j]));
+	      fprintf(radar_imagef, "%f\t", cimag(radar_image[i*nnrows+j]));
+	    }
+	    fprintf(radar_imagef, "\n");
+	  }
 
-  for(i = 0; i < nncols; i++){
-    for(j = 0; j < nnrows; j++){
-      fprintf(pulse_compressedf, "%f\t", creal(pulse_compressed_radar_image[i*nnrows+j]));
-      fprintf(pulse_compressedf, "%f\t", cimag(pulse_compressed_radar_image[i*nnrows+j]));
-    }
-    fprintf(pulse_compressedf, "\n");
-  }
+	  for(i = 0; i < nncols; i++){
+	    for(j = 0; j < nnrows; j++){
+	      fprintf(pulse_compressedf, "%f\t", creal(pulse_compressed_radar_image[i*nnrows+j]));
+	      fprintf(pulse_compressedf, "%f\t", cimag(pulse_compressed_radar_image[i*nnrows+j]));
+	    }
+	    fprintf(pulse_compressedf, "\n");
+	  }
 
-  for(i = 0; i < nncols; i++){
-    for(j = 0; j < nnrows; j++){
-      fprintf(sar_imagef, "%f\t", creal(sar_image[i*nnrows+j]));
-      fprintf(sar_imagef, "%f\t", cimag(sar_image[i*nnrows+j]));
-    }
-    fprintf(sar_imagef, "\n");
-  }
+	  for(i = 0; i < nncols; i++){
+	    for(j = 0; j < nnrows; j++){
+	      fprintf(sar_imagef, "%f\t", creal(sar_image[i*nnrows+j]));
+	      fprintf(sar_imagef, "%f\t", cimag(sar_image[i*nnrows+j]));
+	    }
+	    fprintf(sar_imagef, "\n");
+	  }
 
-  for(i = 0; i < nncols; i++){
-    for(j = 0; j < nnrows; j++){
-      fprintf(sar_fftf, "%f\t", creal(sar_fft[i*nnrows+j]));
-      fprintf(sar_fftf, "%f\t", cimag(sar_fft[i*nnrows+j]));
-    }
-    fprintf(sar_fftf, "\n");
+	  for(i = 0; i < nncols; i++){
+	    for(j = 0; j < nnrows; j++){
+	      fprintf(sar_fftf, "%f\t", creal(sar_fft[i*nnrows+j]));
+	      fprintf(sar_fftf, "%f\t", cimag(sar_fft[i*nnrows+j]));
+	    }
+	    fprintf(sar_fftf, "\n");
+  	  }
   }
-  
 
   fclose(sar_fftf);
   fclose(pulse_compressedf);
