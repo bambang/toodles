@@ -88,7 +88,7 @@ int main(int argc, char** argv){
     process_data();
   }
   else if(mode == 's'){
-    printf("Antenna azimuth beamwidth: ");
+    printf("Antenna azimuth beamwidth in degrees: ");
     ret = scanf("%f", &beamwidth);
     
     if(beamwidth < 1){
