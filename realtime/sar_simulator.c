@@ -15,7 +15,7 @@
 
 void chirp_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int* chirp_length,  double* signal_distance);
 void chirp_matched_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int* chirp_length);
-void insert_waveform_in_scene(unsigned int waveform_length, unsigned int* nnrows, unsigned int* nncols);
+void insert_waveform_in_scene(unsigned int waveform_length);
 void radar_imager(unsigned int nnrows, unsigned int nncols, unsigned int altitude, float beamwidth);
 void gbp(unsigned int nrows, unsigned int ncols);
 void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned int ncols);
@@ -188,7 +188,18 @@ void simulate(){
   printf("Single pulse compression took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  insert_waveform_in_scene(chirp_length, &nnrows, &nncols);
+  printf("One chirp pulse covers %f meters.\n", signal_distance);
+  printf("The target will be placed in the middle of the simulated area.\n");
+  printf("Enter area azimuth length (m): ");
+  float len = 0;
+  int ret = 0;
+  ret = scanf("%f", &len);
+  nncols = len*chirp_length/signal_distance;
+  printf("Enter area range (m): ");
+  ret = scanf("%f", &len);
+  nnrows = len*chirp_length/signal_distance;
+
+  insert_waveform_in_scene(chirp_length);
 
   gettimeofday(&ntime, NULL);
   printf("Scene with waveform generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -197,7 +208,7 @@ void simulate(){
   printf("Scene range: %fm\n", signal_distance*(nnrows/chirp_length));
   printf("Scene azimuth length: %fm\n", signal_distance*(nncols/chirp_length));
   printf("Please input SAR platform height: ");
-  int ret = scanf("%d", &altitude);
+  ret = scanf("%d", &altitude);
   if(ret == EOF){
     printf("Invalid input detected, closing.\n");
     return;
@@ -446,7 +457,7 @@ void chirp_matched_generator(long unsigned int start_frequency, long unsigned in
 
 void pulse_compressed_signal(unsigned int kernel_length){
   unsigned int filter_length = 2*kernel_length;
-  filter_length = pow(2, ceil(log(filter_length)/log(2)));
+  //filter_length = pow(2, ceil(log(filter_length)/log(2)));
 
   fftw_complex* padded_signal = fftw_malloc(filter_length*sizeof(fftw_complex));
   fftw_complex* padded_kernel = fftw_malloc(filter_length*sizeof(fftw_complex));
@@ -546,13 +557,10 @@ void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned i
   fftw_destroy_plan(kernelfft);
 }
 
-void insert_waveform_in_scene(unsigned int waveform_length, unsigned int* nnrows, unsigned int* nncols){
-	*nnrows = 3*waveform_length;
-	*nncols = 3*waveform_length;
-
+void insert_waveform_in_scene(unsigned int waveform_length){
 	int i;
 	for(i = 0; i < waveform_length; i++){
-	  scene_with_waveform[ (*nncols/2)*(*nnrows)+(*nnrows/2)+i   ] = chirp_signal[i];
+	  scene_with_waveform[ (int)(nncols/2)*nnrows + (int)(nnrows/2) +i] = chirp_signal[i];
 	}
 }
 
