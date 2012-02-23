@@ -1,0 +1,3 @@
+#define PI 3.14159265
+#define C 300000000
+#define MEMORY_SIZE 104857600

@@ -12,6 +12,7 @@
 #include <string.h>
 #include <fftw3.h>
 #include <sys/time.h>
+#include "sar_simulator.h"
 
 void chirp_generator();
 void chirp_matched_generator();
@@ -28,15 +29,11 @@ int simulate();
 void process_data();
 int read_radar_file();
 
-#define PI 3.14159265
-#define MEMORY_SIZE 104857600
-#define C 300000000
-
 double chirp_time_vector[MEMORY_SIZE/sizeof(double)];
 double matched_time_vector[MEMORY_SIZE/sizeof(double)];
 double complex chirp_fft[MEMORY_SIZE/sizeof(double)];
 double complex matched_fft[MEMORY_SIZE/sizeof(double)];
-double complex pulse_compressed_waveform[2*MEMORY_SIZE/sizeof(double complex)];
+double complex pulse_compressed_waveform[MEMORY_SIZE/sizeof(double complex)];
 double complex chirp_signal[MEMORY_SIZE/sizeof(double complex)];
 double complex matched_chirp[MEMORY_SIZE/sizeof(double complex)];
 double complex scene_with_waveform[MEMORY_SIZE/sizeof(double complex)];
@@ -46,15 +43,17 @@ double complex sar_image[MEMORY_SIZE/sizeof(double complex)];
 double complex sar_fft[MEMORY_SIZE/sizeof(double complex)];
 double complex sar_img_shifted[MEMORY_SIZE/sizeof(double complex)];
 
-long unsigned int start_frequency = 0;
-long unsigned int bandwidth = 0;
-unsigned int chirp_length, nrows, ncols;
-float btproduct = 0;
-int altitude = 0;
-float beamwidth = 0;
-double signal_distance = 0;
+long unsigned int start_frequency;
+long unsigned int bandwidth;
+unsigned int chirp_length;
+unsigned int nrows;
+unsigned int ncols;
+float btproduct;
+int altitude;
+float beamwidth;
+double signal_distance;
 char mode;
-char radar_file[255];
+char radar_data_filename[255];
 
 int main(int argc, char** argv){
   memset(chirp_time_vector, 0, MEMORY_SIZE);
@@ -76,7 +75,7 @@ int main(int argc, char** argv){
     return;
 
     printf("Please enter file name of raw data: ");
-    ret = scanf("%s", radar_file);
+    ret = scanf("%s", radar_data_filename);
     if(ret == EOF){
 	printf("Invalid input detected, closing.\n");
 	return;
@@ -145,7 +144,7 @@ int main(int argc, char** argv){
 }
 
 int read_radar_file(){
-  FILE* fp = fopen(radar_file, "r");
+  FILE* fp = fopen(radar_data_filename, "r");
   if(fp == NULL)
     return -1;
 
@@ -160,35 +159,35 @@ int simulate(){
 
   chirp_generator();
 
-  gettimeofday(&ntime, NULL);
-  printf("Chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&ntime, NULL);
+  //printf("Chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&otime, NULL);
 
   fft_waveform(chirp_length, chirp_signal, chirp_fft);
 
-  gettimeofday(&ntime, NULL);
+  //gettimeofday(&ntime, NULL);
 
-  gettimeofday(&ntime, NULL);
-  printf("Chirp FFT generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&ntime, NULL);
+  //printf("Chirp FFT generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&otime, NULL);
 
   chirp_matched_generator();
 
-  gettimeofday(&ntime, NULL);
-  printf("Matched chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&ntime, NULL);
+  //printf("Matched chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&otime, NULL);
  
   fft_waveform(chirp_length, matched_chirp, matched_fft);
 
-  gettimeofday(&ntime, NULL);
-  printf("Matched chirp FFT generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&ntime, NULL);
+  //printf("Matched chirp FFT generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&otime, NULL);
 
   pulse_compress_signal();
 
-  gettimeofday(&ntime, NULL);
-  printf("Single pulse compression took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&ntime, NULL);
+  //printf("Single pulse compression took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&otime, NULL);
 
   printf("One chirp pulse covers %f meters.\n", signal_distance);
   printf("The target will be placed in the middle of the simulated area.\n");
@@ -196,24 +195,24 @@ int simulate(){
   float len = 0;
   int ret = 0;
   ret = scanf("%f", &len);
-  if(len < 0.1*signal_distance){
+  ncols = len*chirp_length/signal_distance;
+  if(ncols < 2){
     printf("Invalid azimuth length, exiting.\n");
     return -1;
   }
-  ncols = len*chirp_length/signal_distance;
   printf("Enter area range (m): ");
   ret = scanf("%f", &len);
-  if(len < signal_distance){
+  nrows = len*chirp_length/signal_distance;
+  if(nrows < chirp_length){
     printf("Too small range, exiting.\n");
     return -1;
   }
-  nrows = len*chirp_length/signal_distance;
 
   insert_waveform_in_scene();
 
-  gettimeofday(&ntime, NULL);
-  printf("Scene with waveform generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&ntime, NULL);
+  //printf("Scene with waveform generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&otime, NULL);
 
   printf("Scene range: %fm\n", signal_distance*(nrows/chirp_length));
   printf("Scene azimuth length: %fm\n", signal_distance*(ncols/chirp_length));
@@ -226,32 +225,32 @@ int simulate(){
 
   radar_imager();
 
-  gettimeofday(&ntime, NULL);
-  printf("Radar image generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&ntime, NULL);
+  //printf("Radar image generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&otime, NULL);
 }
 
 void process_data(){
   struct timeval otime, ntime;
 
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&otime, NULL);
 
   pulse_compress_image();
 
-  gettimeofday(&ntime, NULL);
-  printf("Pulse compression of radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&ntime, NULL);
+  //printf("Pulse compression of radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&otime, NULL);
 
   gbp();
 
-  gettimeofday(&ntime, NULL);
-  printf("GBP of pulse-compressed radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
-  gettimeofday(&otime, NULL);
+  //gettimeofday(&ntime, NULL);
+  //printf("GBP of pulse-compressed radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&otime, NULL);
 
   gbp_fft();
 
-  gettimeofday(&ntime, NULL);
-  printf("FFT generation of GBP image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
+  //gettimeofday(&ntime, NULL);
+  //printf("FFT generation of GBP image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
 
   if(mode == 's')
     filter_dc();
@@ -425,8 +424,6 @@ void chirp_generator(){
   double end_time = btproduct/bandwidth;
   double chirp_rate = bandwidth/end_time;
 
-  printf("Signal time duration: %es\n", end_time);
-
   unsigned long int sample_frequency = 5*bandwidth;
   unsigned long int time_steps = end_time*sample_frequency;
   chirp_length = time_steps;
@@ -468,7 +465,6 @@ void chirp_matched_generator(){
 void pulse_compress_signal(){
   int kernel_length = chirp_length;
   unsigned int filter_length = 2*kernel_length;
-  //filter_length = pow(2, ceil(log(filter_length)/log(2)));
 
   fftw_complex* padded_signal = fftw_malloc(filter_length*sizeof(fftw_complex));
   fftw_complex* padded_kernel = fftw_malloc(filter_length*sizeof(fftw_complex));
