@@ -1,0 +1,759 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{pdfpages} 
+\usepackage{tikz}
+\usepackage{listings}
+\makeglossary
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=blue,
+    urlcolor=black
+}
+
+\begin{document}
+
+\pagenumbering{Roman}
+
+\makeatletter
+\newcommand\ackname{Acknowledgements}
+\if@titlepage
+  \newenvironment{acknowledgements}{%
+      \titlepage
+      \null\vfil
+      \@beginparpenalty\@lowpenalty
+      \begin{center}%
+        \bfseries \ackname
+        \@endparpenalty\@M
+      \end{center}}%
+     {\par\vfil\null\endtitlepage}
+\else
+  \newenvironment{acknowledgements}{%
+      \if@twocolumn
+        \section*{\abstractname}%
+      \else
+        \small
+        \begin{center}%
+          {\bfseries \ackname\vspace{-.5em}\vspace{\z@}}%
+        \end{center}%
+        \quotation
+      \fi}
+      {\if@twocolumn\else\endquotation\fi}
+\fi
+\makeatother
+
+\includepdf{Template_FP.pdf}
+
+\author{Alexander Rajula}
+
+\newpage
+
+\thispagestyle{empty}
+\mbox{}
+
+\newpage
+
+\addcontentsline{toc}{section}{Abstract}
+\begin{abstract}
+    Synthetic aperture radar systems are used extensively for imaging vast areas using electromagnetic radiation. Radar systems have the benefit of being able to image areas which optical light cannot penetrate, and makes radar suitable for surveillance and weather monitoring, or monitoring through difficult atmospheric conditions. This thesis investigates whether a hand-held radar can function as a synthetic aperture radar device, by employing standard synthetic aperture radar projection and filtering algorithms, and whether it is possible to image contents within walls with the same equipment.
+\end{abstract}
+
+\newpage
+
+\thispagestyle{empty}
+\mbox{}
+
+\newpage
+
+\addcontentsline{toc}{section}{Acknowledgements}
+\begin{acknowledgements}
+I wish to thank three, albeit now deceased, great poets. Carl Sagan, for his effort to increase scientific awareness in the public mind, Richard Feynman for his enthusiastic and engaging descriptions of the natural world, whom I would have much to owe had he been alive. Last but not least, I thank Gene Roddenberry for instigating a televisio-cinematic revolution and inspiring numerous young people to pursue scientific and engineering careers.\\\\
+I also wholeheartedly thank Mats Pettersson, Viet Thuy Vu and Thomas Sj\"ogren for their support and laying the foundations on which much of this thesis is based.\\\\
+A nod goes out to David Erman and Wlodek Kulesza whose courses greatly improved my academic writing skills.\\\\
+I thank Dan Axelsson at Cinside AB for this interesting topic, and the ease with which we worked together on this project
+
+  \begin{center}
+    \large{\textit{Beam me up Scotty!}}
+  \end{center}
+
+\end{acknowledgements}
+
+\newpage
+
+\tableofcontents
+\newpage
+
+\addcontentsline{toc}{section}{List of Figures}
+\listoffigures
+
+\addcontentsline{toc}{section}{List of Tables}
+\listoftables
+
+\newpage
+
+\pagenumbering{arabic}
+
+\section{Introduction}
+Radio detection and ranging (RADAR) is a system used to extract useful information from reflected electromagnetic signals. Radar has been in use since the early 1900s, first described in a patent by H\"{u}lsmeyer under the description \textit{telemobiloscope} \cite{hulsmeyer}. Radar as we know it today developed from the 1920s and onwards, and gained a substantial momentum during World War II \cite{radar-history}. It has since then been employed extensively in a variety of fields, for instance weather forecasting \cite{liu-weather-sar}, imaging of objects in space \cite{freeman-sar-mars} and more recently to generate 2D human-readable images of ground surfaces, for instance damage assessment in forests \cite{fransson-damaged-forest}.\\
+
+\indent The basic operation of any radar system is a signal generator, an amplifier, an antenna for transmission of radar pinging signals, an antenna for receiving radar echoes, and the necessary analog or digital signal processing apparatus to extract useful information from the radar echoes. The exact details of the various components depend on the application of the radar system. Since the applications are so diverse, there are also a wide range of radar systems in use today. The most basic building blocks are outlined in Fig. 1.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=300px]{radar_system.png}
+  \caption{Rudimentary radar system}
+\end{figure}
+
+\subsection{Introducing synthetic aperture radar systems}
+Normally, a radar can only capture reflections within its antenna beamwidth range, which limits the area any stationary radar can image.
+Synthetic aperture radar (SAR) systems extend this area by employing single (monostatic) or dual (bistatic) antennas in combination with a moving platform, usually an aeroplane, to capture reflections from a vast area \cite{viet-dissertation}.\\
+In a SAR system, the kind of radar ping (waveform) and its pulse repetition frequency (PRF) are important, since they determine the resolution in range. Simply put, finer range resolution means that smaller objects can be discerned in the final SAR image.
+
+\subsection{A typical SAR system}
+Any SAR system employs a specific waveform with a certain PRF. The reflected complex signal (amplitude and phase) is recorded over the entire synthetic aperture for real-time or post processing. This is the raw received data. The raw data is then processed by \textit{pulse compression} to increase range resolution and signal-to-noise ratio (SNR). The pulse-compressed data may then be processed by a radio-frequency (RF) interference (RFI) filter which aims to cancel out interference due to non-radar sources, for instance television broadcasts \cite{viet-suppress-rfi}. Once the data has been appropriately compressed and filtered, a SAR imaging algorithm is employed to create a 2D human-readable image from the radar data. There are various SAR imaging algorithms in use, operating either in the time or frequency domains. The selection of which imaging algorithm to use depends on image quality requirements just as much as the requirement in processing speed. Studies have been made comparing the complexity between time domain and frequency domain algorithms, as well as comparisons between different time and frequency domain algorithms to asses computational complexity and image quality \cite{ahmed-thesis}\cite{viet-ffbp-freq-comparison}\cite{viet-image-quality-uwb}.\\
+As a last step, a filtering process known as \textit{apodization} is typically employed to decrease frequency-domain sidelobe levels \cite{thomas-2d-apodization}. The SAR system described is depicted in Fig. 2.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=300px]{sar_system.png}
+  \caption{Typical SAR system}
+\end{figure}
+
+\subsection{Problem statement}
+This thesis tries to solve the problem of imaging the contents within a wall or other solid object using a SAR system. There is, however, one main difference between the problem faced in this thesis and a typical SAR system, in that the radar will operate in relatively close range to the object being probed, and in addition the radar will be scanned by hand, not by an aeroplane.
+
+\subsection{Thesis scope}
+The scope of this thesis is to implement SAR imaging algorithms and necessary pre- and postprocessing steps, verify the functionality of the algorithms and use the algorithms to process hand-held radar data.
+The end product is a SAR model and processor implemented in Scilab \cite{scilab} and the C programming language, which can be used to simulate and process hand-held radar data to generate a 2D human-readable image. In addition, the thesis covers parameter requirements for hand-held SAR imaging to work, and presents an analysis on how nonlinear scanning may be handled.
+
+\subsection{Thesis outline}
+This chapter has given a basic description of radar systems in general, and SAR systems in particular. In the following chapter I give a more detailed technical description of SAR systems. In chapter four the Scilab model is descibed in detail, as well as a description of the radar equipment used to gather data. Chapter four also contains a subchapter on verification of the system model.
+
+\subsection{Research questions}
+There are a number of concrete research questions associated with this topic, some of which are:
+
+\begin{itemize}
+  \item What waveforms are most suitable, or are we constrained by the radar equipment?
+  \item Is Global Backprojection applicable for imaging the radar data or do we need another imaging algorithm?
+  \item What PRF values are most optimal?
+  \item Do we need RFI suppression?
+  \item Do we need to employ apodization?
+\end{itemize}
+
+\subsection{Methodology}
+The methodology in this thesis is simulation using Scilab and a C program guided by standard radar equations and SAR equations in particular regarding range resolution and image quality.
+
+\newpage
+
+\section{Background and related work}
+This chapter presents a detailed report on the key characteristics of SAR systems, and concludes by a review on research related to this thesis.\\
+In a SAR system, several subsystems, equations and parameters are of importance for design and evaluation. Some of them are described below, in processing order.
+
+\subsection{The radar range equation}
+Most crucial to all radar designs is the radar range equation, which relates the transmitted and received signal powers:
+
+\begin{equation}
+  P_r = {P_tG_t \over 4\pi R^2}{\sigma A_e \over 4\pi R^2}
+\end{equation}
+
+The equation is a product of two parts, the signal energy at the scattering object, and the received signal energy at the radar equipment. Here, $P_t$ is the transmitted radar energy, $G_t$ is the gain of the transmitting antenna, $R$ is the distance to the object scattering the energy, $\sigma$ is the radar cross section of the scattering object, and $A_e$ is the aperture size of the receiving antenna. The squared magnitude of the distance and the factor of $4\pi$ accounts for the spherical propagation of the energy of an isotropic radiator.\\
+Given this equation, it is possible to estimate either the radar cross section of an object, or it can be used to evaluate power and antenna parameters for a particular design.\\\\
+There is also a relation between effective antenna aperture area and antenna gain, which is useful if the same antenna is used for both transmission and reception:
+
+\begin{equation}
+  G_t = {4\pi A_e \over \lambda^2}
+\end{equation}
+
+Here, $\lambda$ is the wavelength of the signal transmitted.\\\\
+In addition a standard expression for the minimum received signal level is used, which is dependent on the required signal-to-noise ratio:
+
+\begin{equation}
+  S_{min} = kT_oBF_n(S/N)
+\end{equation}
+
+Here, the first three parameters, $kT_0B$, is the thermal noise from an ideal ohmic conductor. $k$ is Boltzmann's constant and $T_0$ is the temperature at about 20 centigrade (290K) \cite{skolnik}. $B$ is the bandwidth of the signal, $F_n$ is the receiver noise figure, and $S/N$ is the required signal-to-noise ratio. This equation is valid for one radar pulse, but in most radar systems used today, several pulses are integrated to increase the probability of correct detection. The required received signal energy per pulse is thus \textit{less}, which is usually incorporated by a factor of $nE_i(n)$, where $n$ is the number of pulses added, and $E_i(n)$ is the efficiency of adding them together.\\
+The resulting expression is thus:
+
+\begin{equation}
+  S_{min} ={ kT_oBF_n(S/N) \over nE_i(n)}
+\end{equation}
+
+\subsection{Signal waveforms}
+The most simple waveform used in radar is a continuous wave, in which the doppler shift is used to detect moving targets. This is unsuitable for UWB SAR systems, and instead a chirp signal is employed, in which the signal frequency increases linearly in time during pulse transmission. A typical chirp signal is mathematically described by \cite{thomas-lic}:
+
+\begin{equation}
+  s_t(\tau) = e^{-i2\pi(\phi_0+f_c\tau+k\tau^2)}, \tau \in \left[ -{T_p\over 2}, {T_p\over 2} \right]
+\end{equation}
+
+Here, $\tau$ is the time over which the pulse is active, $\phi_0$ is the phase, $k$ is the chirp rate, $f_c$ is the center frequency of the signal and $T_p$ is the total pulse length.
+Fig. 3 shows an example chirp waveform. The center frequency is set to 200MHz with a chirp rate of $100*10^6$ and signal duration of one millisecond.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=300px]{chirp_waveform.pdf}
+  \caption{Typical chirp waveform}
+\end{figure}
+
+\subsection{Azimuth doppler effects}
+Since the SAR system moves with a velocity $v_{sar}$ with respect to ground objects, the received radar echo will be subject to a frequency shift according to the well known doppler equation:
+
+\begin{equation}
+f = \left( {c+v_{sar} \over c+v_s}  \right)f_0
+\end{equation}
+
+Here, $v_s$ is the velocity of a ground object. For stationary ground objects, the shift simplifies to:
+
+\begin{equation}
+f = \left( 1+{v_{sar}\over c} \right)
+\end{equation}
+
+In the normal SAR case, the platform may move with great velocity, and echoes from different azimuth positions will be collected at the same time, each echo having a different frequency shift. When the platform moves with high velocity, this effect must be accounted for.\\
+For the case of hand-held radar equipment, radar velocities will not exceed one meter per second, and so the fractional frequency shift will be insignificant, which directly tells us that we will not need to consider azimuth doppler shifts in this thesis.
+
+\subsection{Time-bandwidth product effects}
+When digitally creating the chirp signal, it is important to keep several factors in mind, in particular sampling time and signal duration. The chirp rate and the bandwidth of the signal are related by:
+
+\begin{equation}
+B = k*t_{end}
+\end{equation}
+
+Here, k is the chirp rate and $t_{end}$ is the signal duration. There are two variables to control here to make the chirp signal reach the full spectral content. We now introduce the time-bandwidth product (TBP), which typically is a constant, and measures the granularity of the chirp spectrum. Since the chirp signal is digitally created with a certain number of samples, undersampling misses spectral components. Using the TBP to control both end time and chirp rate is a simple way of generating a chirp signal of desired spectral quality. A higher TBP means that more spectral components will be captured by the digital signal. A lower TBP means that more spectral components will be missed. The selection of TBP for simulation purposes is a tradeoff between signal quality and processing time, since increasing the time of the signal will also lead to more waveform samples.\\
+In the figures below, the spectrum of a chirp signal with different values for TBP are plotted to illustrate the effects TBP has on the signal.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=250px]{chirp_tbp10.pdf}
+  \caption{Chirp signal spectrum with TBP of 10.}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=250px]{chirp_tbp40.pdf}
+  \caption{Chirp signal spectrum with TBP of 40.}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=250px]{chirp_tbp100.pdf}
+  \caption{Chirp signal spectrum with TBP of 100.}
+\end{figure}
+
+\subsection{Pulse compression}
+Pulse compression is a signal processing technique to increase range resolution and signal to noise ratio. It works by convolving the received signal with a time-reversed and conjugated version of the transmitted signal.  This is nothing else than computing the cross-correlation of the two signals, also known as matched filtering. The received signal will be attenuated and arrive at a time offset with respect to the transmitted signal. If we disregard the attenuation, the received signal can be described by \cite{thomas-lic}:
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=300px]{pulse_compressed_tbp100.pdf}
+  \caption{Pulse-compressed chirp signal with TBP of 100.}
+\end{figure}
+
+\begin{equation}
+  s_r(\tau) = e^{-i2\pi\left(\phi_0+f_c\left( \tau - {2R\over c} \right ) + k \left( \tau - {2R\over c} \right)^2\right)}, \tau \in \left[-{T_p\over 2}+\tau_d, {T_p\over 2}+\tau_d \right]
+\end{equation}
+
+The pulse-compressed signal is thus computed as follows:
+
+\begin{equation}
+  s_{pc}(\tau) = s_r(\tau)*s_t(-\tau)^*
+\end{equation}
+
+The convolution is easily computed in the frequency domain by first utilizing the Fourier transform, typically with the FFT algorithm. A pulse-compressed chirp signal is shown in Fig. 4.
+
+
+\subsection{Pulse repetition frequency and resolution}
+Since a SAR system images a two-dimensional surface, there are relationships between antenna beamwidth $\theta_B$, pulse repetition  frequency PRF, pulse bandwidth $B$, platform speed $v_p$, range distance $R$, aperture length $L_{sa}$ and the \textit{range} $\delta_r$ and \textit{crossrange} $\delta_{cr}$ (also known as \textit{azimuth}) resolutions.\\
+For a real aperture, the approximation $\theta_B \approx {\lambda \over D}$ is used which gives a linear crossrange resolution of:
+
+\begin{equation}
+  \delta_{cr} = {R\lambda \over D}
+\end{equation}
+Here, D is the aperture diameter.\\
+For a synthetic aperture, we have the advantage that we can form extremely large apertures by physically moving the radar. Let us assume that the platform moves in a straight line perpendicular to the scene being observed. The length of the aperture is thus $L_{sa} = v_p*T$, where T is the time over which the aperture is formed. From the SAR, the scene rotates with an angular velocity of $\Omega = v_{p}/R$. The total angle through which the SAR rotates is thus $\Omega T = v_pT/R = \Delta\theta$. A stationary target appears to the SAR to have a line-of-sight velocity of $\Omega r$, where r is the crossrange distance of the target. This will result in doppler shifts of $2v_{target}/\lambda = 2\Omega r/\lambda$. If we assume that the frequency between successive returns of radar signals is $\Delta f = 1/T$, and combine this with the doppler frequency shift, we get the following crossrange resolution \cite{skolnik}:
+
+\begin{equation}
+  \delta_{cr} \approx {\Delta f \over f_{doppler}} = {\lambda \over 2\Omega T} \approx {R\lambda \over 2L_{sa}} \approx {\lambda \over 2\Delta\theta} \approx {\lambda R \over 2L_{sa}}
+\end{equation}
+
+Here, $\Delta\theta$ is the synthetic aperture angle, as seen from the target.\\\\
+An equation for range resolution is easily derived. Assume the signal to have a bandwidth $B$, which rougly gives a signal period of $\tau \approx {1\over B}$. The signal needs to travel two ways, and since it travels at the speed of light, we get the following range resolution:
+
+\begin{equation}
+  \delta_r \approx {c\over 2B}
+\end{equation}
+\\
+Let us now see if we can derive the constraints for PRF. The derivation is based on \cite{skolnik}, see Fig. 4. Imagine the scene illuminated by the radar beam at a particular slice of the total area covered, and also imagine two objects located at the ends of  the beamwidth area illuminated. Name the objects A and B. For the SAR system, the apparent angular velocity is $\Omega = {V\over R}$. The angle between the center of the radiation beam and the objects A and B is ${\Theta_B \over 2} \approx {\lambda \over 2D}$. The velocity of objects B and A  is thus:
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=250px]{scan_beamwidth.png}
+  \caption{Illuminated area over the first-null beamwidth}
+\end{figure}
+
+\begin{equation}
+ \pm \Omega r \approx \pm \left({V\over R} \right) \left( {\lambda R \over 2D} \right ) = \pm {\lambda V \over 2D}
+\end{equation}
+
+The range of relative velocities over the area illuminated is thus:
+
+\begin{equation}
+  {\lambda V \over D}
+\end{equation}
+
+This gives a range of doppler frequencies:
+
+\begin{equation}
+  \Delta f_d = {2\over \lambda}{\lambda V \over D} = {2V\over D}
+\end{equation}
+
+If we want to avoid velocity ambiguity, this sets a constraint on the PRF:
+
+\begin{equation}
+  f_{pr} \geq {2V\over D}
+\end{equation}
+
+However, we also want to avoid range ambiguity and eclipsing, i.e if we transmit pulses too fast, we will not be able to determine from which pulse an echo corresponds, which gives us:
+
+\begin{equation}
+  f_{pr} \leq {c\over 2R}
+\end{equation}
+
+Combining these two inequalities we get:
+
+\begin{equation}
+  {2V\over D} \leq f_{pr} < {c\over 2R}
+\end{equation}
+
+For stripmap SAR, we can use the relation $\delta_{cr} = {D\over 2}$, which leads to:
+
+\begin{equation}
+  {V\over \delta_{cr}} \leq f_{pr} < {c\over 2R}
+\end{equation}
+
+We see here that the crossrange resolution and the range are coupled, and can thus not be selected independently of each other:
+
+\begin{equation}
+  {R\over \delta_{cr}} \leq {c\over 2V}
+\end{equation}
+
+According to \cite{skolnik}, a more sophisticated expression is:
+
+\begin{equation}
+  {R\over \delta_{cr}} \leq {c\over 4.7V}
+\end{equation}
+
+\subsection{Radio frequency interference suppression}
+When working with low-frequency SAR, or radar systems in general, the received radar signal may contain energy from sources other than the radar transmitter. One possible source is television broadcasts, and if the radar is operated at frequencies in which it is known that other sources of radiation in the same frequency band are active, then radio frequency interference suppression filters may be needed to extract any useable radar data. If no RFI cancellation is employed, the radar signal may drown in background noise. Recently, an adaptive line enhancer in conjunction with the Normalized Least Mean Square (NLMS) algorithm has been proposed to act as the filter \cite{viet-rfi-suppression-ale}.\\ At the heart of the suppression system is the coefficient updating algorithm:
+
+\begin{equation}
+  \mathbf{w}(n+1) = \mathbf{w}(n)+ {\beta \over \mathbf{x}^T(n) \mathbf{x}(n)}\mathbf{x}^*(n)\left[s(n)+v(n)\right]
+\end{equation}
+
+Here, $\mathbf{w}$ is the filter coefficients, $\beta$ is the filter convergence constant, $\mathbf{x}$ is the reference signal, and $s+v$ is the radar plus thermal noise signal.\\
+The input to the ALE is a sum of terms:
+
+\begin{equation}
+  d(n) = s(n)+v(n)+\rho(n)
+\end{equation}
+Here, $\rho$ is the RFI signal.\\
+The reference signal $\mathbf{x}$ to the adaptive FIR filter is created by delaying the ALE input an integer number $n_0$ of time samples:
+
+\begin{equation}
+  \mathbf{x}(n) = d(n-n_0)
+\end{equation}
+
+If the input $d(n)$ is a weakly stationary stochastic process, and we assume that the filter coverges, an estimate of the RFI signal is computed by the filter:
+
+\begin{equation}
+  \rho(n) \approx \mathbf{w}^T(n)\mathbf{x}(n)
+\end{equation}
+
+The radar signal plus thermal noise can thus be approximated by:
+
+\begin{equation}
+  s(n)+v(n) \approx d(n) - \rho(n) = d(n) - \mathbf{w}^T(n)\mathbf{x}(n)
+\end{equation}
+
+In the paper referenced, $0 < \beta < 2$, and for their tests they used $\beta = 0.015$, $n_0 = 1$ and a filter length of order 256.
+
+\subsection{SAR imaging}
+When the RAW radar data has been appropriately pre-processed, a time- or frequency domain SAR imaging algorithm is employed to transform the 2D radar image to a 2D normal image. Time-domain algorithms are presented here.
+
+\subsubsection{Global Backprojection}
+Global Backprojection is a time-domain algorithm for forming the 2D image from the radar data. It is the baseline on which comparisons with new time-domain algorithms is made. The algorithm is described by a single equation \cite{mats-detection}:
+
+\begin{equation}
+  h(x, \rho) = \int_{-L\over 2}^{L\over 2} g(x',r)\, dx'
+\end{equation}
+
+In the above equation, $h(x, \rho)$ is the image pixel value at position $x$ in crossrange and $\rho$ in range. When the flight track is straight, the following relation holds:
+
+\begin{equation}
+  r = \sqrt{(x'-x)^2+\rho^2}
+\end{equation}
+
+We thus get:
+
+\begin{equation}
+  h(x, \rho) = \int_{-L\over 2}^{L\over 2} g(x',\sqrt{(x'-x)^2+\rho^2})\, dx'
+\end{equation}
+
+When this is implemented on a computer, the above summation is discrete, and the number of summations depends on the number of aperture slices in the radar data. The number of operations to form an image with GBP is proportional to $O(N_xN_\rho N_{slices})$.\\
+Writing GBP in discrete form gives us:
+
+\begin{equation}
+  \mathbf{h}[x, \rho] = \sum_{x'=1}^{N_{slices}} \mathbf{g}[x',\sqrt{(x'-x)^2+\rho^2}]\,\, , x',x,\rho \in Z
+\end{equation}
+
+The main advantage of GBP lies in its simplicity, and applicability to images of unlimited size, limited only by the computer processing time and memory requirements.
+
+\subsubsection{Local Backprojection}
+Local Backprojection is a two-stage algorithm based on GBP, which reduces the computational load. The extra step in LBP is called beamforming. The algorithm works by forming the images for the different subapertures independently, and then all subimages are combined to form the final image \cite{mats-detection}. The computational load for LBP is given by $N_{op} \approx N_a\left( {N_xN_\rho \over N_{a,sa}} \right)$, where $N_a$ is the number of aperture positions and $N_{a,sa}$ is the number of subaperture positions. The computational load for LBP is thus a factor of $N_{a,sa}$ lower than GBP. The LBP algorithm is defined as follows:
+
+\begin{equation}
+h(x,\rho) = \sum_{m=1}^M
+\,\, 
+\int_{x_m-{L_s\over 2}}^{x_m+{L_s\over 2}}
+ g\left(
+x',
+\sqrt{(x_c-x_m)^2+\rho_c^2} + { \{ (x'-x_m) - (x-x_c) \}(x_m-x_c) + (\rho - \rho_c)\rho_c  \over \sqrt{(x_c-x_m)^2+\rho_c^2 }} \right) \,\, dx' 
+\end{equation}
+
+Here, $x_m$ is the center pixel of the m:th subaperture, and $(x_c,\rho_c)$ is the center coordinates of a subimage.\\
+Again writing this in discrete form gives us:
+
+\begin{equation}
+\mathbf{h}[x,\rho] = \sum_{m=1}^M \sum_{n=x_m-N/2}^{x_m+N/2} \mathbf{g}\left[x', \sqrt{(x_c-x_m)^2+\rho_c^2} + { \{ (x'-x_m) - (x-x_c) \}(x_m-x_c) + (\rho - \rho_c)\rho_c  \over \sqrt{(x_c-x_m)^2+\rho_c^2 }} \right]
+\end{equation}
+
+The inner integral (summation) is called the subaperture beam.
+
+\subsection{SAR image apodization}
+The reflected signal from a target has a main lobe and sidelobes. If a weakly reflecting object is located in close proximity to an object which reflects strongly, the sidelobes from the strong reflector may be greater than the main lobe of the weak reflector. This means that the object with greater reflection may shadow the smaller object, which is undesirable. The method to compensate for this effect is known as \textit{apodization}, in which the sidelobes are suppressed with appropriate filtering. In \cite{thomas-2d-apodization}, separable and non-separable windowing functions are evaluated. A separable window in 2D frequency space is generally given by:
+
+\begin{equation}
+  W_{sep}(k_x, k_y) = W_{k_x}\left( {k_x \over 2k_c \sin{\phi_o\over 2}} \right) W_{k_y} \left ( {{k_y - k_c} \over {k_{max} - k_{min}}} \right)
+\end{equation}
+
+Here, $k_x, k_y, k_c$ are the wavenumbers in crossrange, range and center wavenumber of the radar signal, and $\phi_0$ is the integration angle. $k_{max}, k_{min}$ are the max and min wavenumbers of the signal. In the paper, a non-separable window is described by:
+
+\begin{equation}
+  W_{non-sep}(k_x, k_y) = W_\phi \left( {{tan}^{-1} \left( {k_x\over k_y} \right) \over {\phi_0 \over 2} } \right) W_{k_r}\left( {\sqrt{k_x^2+k_y^2} - k_c \over k_{max} - k_{min} } \right)
+\end{equation}
+
+Here, $k_r$ is the range wavenumber in the frequency domain.\\
+The authors in the paper cited compared the two windows using both Bartlett and Hamming windows. The difference between separable and non-separable windows was shown to be small for SAR systems with small fractional bandwidth and small integration angles. However, for systems employing large fractional bandwidths and larger integration angles, non-separable windows suppressed non-orthogonal considerably more than a separable window.\\
+It should be noted that other window functions may be used
+
+\subsection{Related work}
+In \cite{chan-twsar}, a through-wall SAR system is used in conjunction with contourlet domain hidden Markov tree based detection to automatically detect targets located inside and beyond walls. The results are of modest quality, and much more work is needed, since the processed images are of low quality.\\\\
+No other research using SAR at close range to scan through walls has been found.\\\\
+Related to computational complexity, the authors in \cite{fasih-gpu} implemented the direct filtered backprojection algorithm on a graphics processing unit using CUDA, and achieved a processing speedup of up to 60 times compared to the computational time of the CPU.
+
+\subsection{Sources of RF interference}
+Since the radar equipment operates in the public UHF and SHF bands, we must consider possible sources of interference. In Sweden, \textit{Post och Telestyrelsen} manages the frequency spectrum, and gives a list of frequency allocations within Sweden. The complete spectrum is located in the appendix.
+\\
+From the extensive table, we see that the spectrum is filled with services in the frequency band under study (approximately UHF). However, most allocations in the upper bands are dedicated to GPS or other positioning services. In addition to these, frequencies have been allocated to the Onsala space observatory. Neither of these services should a priori pose any threat to the radar imagery. What is more unnerving is that both 2G, 3G and wireless local area networks are located in this large frequency band, and since all three are in frequent use today, they may need to be filtered out from the radar image before SAR imaging.
+
+
+\newpage
+
+\section{System description}
+
+\subsection{System requirements}
+To fully simulate the scanning scenario, the model must take antenna beamwidth, antenna elevation and radar tilt into account, as well as the waveform. Chirp signals are the de-facto standard in long-range SAR systems utilizing a high fractional bandwidth, and as such we use a chirp waveform with customizable start frequency and bandwidth in the simulation model. Even though the radar system used is not configured to emit a chirp waveform, we use it in the model for its sheer simplicity. The model must in addition calculate the fractional area exposed by the radar as it moves throughout the image to generate realistic raw radar data.
+
+\subsection{System model and design}
+To be able to say with a certain probability that a system works in real life, one should test the system with control data. The control data must be deterministic, or at least be of such a nature that one knows how the system will respond to the control data. If the system produces correct output from the control data, one can be certain that the system works, and the system can be used with real data.\\
+\indent To be able to have any confidence in the SAR algorithms and processing developed during this thesis, a radar simulation model had to be developed. The purpose of the simulation model was to simulate radar data, that is the raw radar data as it is received from a radar. To achieve this, one must specify the scene geometry, where scattering objects are located, the waveform characteristics, platform altitude and antenna beamwidth. 
+
+\subsection{Implementation of system model}
+The simulation model developed in this thesis consists of a number of steps, where the user first specifies the scene geometry and where scattering objects are located. The output is a matrix containing ones at scatterer positions. Once the scene has been created, the user specifies start frequency and bandwidth of the chirp waveform used in the radar. This effectively inserts the waveform at the positions where scattering objects are located in the scene.\\
+\indent The raw radar data is generated by taking the antenna beamwidth into account, which means that radar data from several crossrange bins are projected onto one column. The range in a certain column is calculated by simple trigonometry:
+
+\begin{equation}
+  R = \sqrt{(C_r - c)^2+r^2}
+\end{equation}
+
+Here, $C_r$ is the crossrange bin over which the antenna beam illuminates, $c$ is the column being calculated and $r$ is the row  in the crossrange bin being calculated. For a point scatterer in the middle of the scene, this effectively generates a hyperbola in radar image space. Scilab and C code is located in the appendix.
+\\
+Once the raw data has been generated, the raw data matrix is pulse compressed with a time-reversed and conjugated version of the chirp signal. The pulse compression is implemented in the frequency domain by employing zero padding and the FFT algorithm.
+\\
+The final step is to employ a SAR imaging algorithm to de-skew the hyperbola into its correct position in real image space. In the simulation GBP has been used for simplicity (Eq. 28). As can be seen in the figure, GBP correctly focuses most of the radar power in the correct position at the center of the image. The exact thape of all three figures depends on the resolution of the scene and the waveform used.
+
+\subsection{Verification of system model}
+To verify both Scilab and C models, a start frequency of 900MHz and bandwidth of 4.1GHz was used in conjunction with various TBP to generate the chirp signal. The chirp was inserted in the center of a rectangular image matrix. The radar imaging algorithm was applied to the image matrix, upon which a radar "distorted" image was generated. The radar image was then pulse-compressed, and finally GBP was employed. This generates in total four radar images, the last being a 2D FFT of the SAR image after GBP. By varying the TBP, one can vary the spread of the fan-shape in 2D SAR frequency image space, which is equivalet to varying target resolution in SAR image space. A wider fan shape in 2D frequency space indicates coarser resolution, whilst a narrower fan shape is equivalent to finer target resolution.
+\\
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=300px]{radar-tbp30-beam80.png}
+  \caption{Simulated radar image with TBP 30 and azimuth beamwidth 80 degrees}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=300px]{radar-pulsecomp-tbp30-beam80.png}
+  \caption{Pulse-compressed radar image with TBP 30 and azimuth beamwidth 80 degrees}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=300px]{sar-tbp30-beam80.png}
+  \caption{GBP image of pulse-compressed image with TBP 30 and azimuth beamwidth 80 degrees}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=300px]{sar-fft-tbp30-beam80.png}
+  \caption{2D FFT of GBP image with TBP 30 and azimuth beamwidth 80 degrees}
+\end{figure}
+
+
+\subsection{Hardware description}
+The hardware used to gather real radar data consisted of a Novelda Impulse Radar in a bistatic setup. In addition to the radar chip, the system uses an Atmel AT91SAM7 microcontroller for communication between radar chip and computer. The Novelda Impulse Radar uses a staggered PRF system with 512 samplers operating as a number of radars in parallel. The radar sampling frame span can be adjusted, which enables selection of the unambiguous range. The radar system uses Vivaldi antennas from Imego \cite{vivaldi-antenn} operating from 900 MHz to 5 GHz and has -3dB beamwidths of 40 and 100 degrees in azimuth and elevation, respectively. Another antenna previously used for measuring snow depth with radar is used, and operates within 3.1-5.6 GHz with a beamwidth of 60 degrees in both azimuth and elevation.
+
+\subsubsection{Antenna far-field calculation}
+When using any radiating equipment, it is useful to know where the antenna far-field begins. If the antenna is used on distances shorter than the far-field range, the antenna will couple to the object inside its reactive region, which is unsuitable because the spherical propagation model breaks down at the boundary. The far-field region begins where the phase error is at a maximum of ${1 \over 16}$ of a wavelength. The following relation describes this distance:
+
+\begin{equation}
+R_{far-field} = {2D^2 \over \lambda}
+\end{equation}
+
+Here, D is the largest linear dimension of the antenna. For the Vivaldi \cite{vivaldi-antenn} antenna, this is 150mm. The shortest and longest wavelengths are 6 and 33cm, respectively. This gives us:
+
+\begin{equation}
+ {2*0.15^2\over 0.06} \approx 0.75\,\, [m]
+\end{equation}
+
+\begin{equation}
+ {2*0.15^2\over 0.33} \approx 0.136\,\, [m]
+\end{equation}
+
+This means that when designing measurement scenarios, they must be performed at least 0.75 m from the target with the Vivaldi antenna.\\\\
+For the snow radar, the largest linear dimension is 34.4mm. The shortest and longest wavelengths are 5.35 and 9.67 cm, which gives us far-field distances of:
+
+\begin{equation}
+  {2*0.0344^2\over 0.0967} \approx 2.45\,\, [cm]
+\end{equation}
+
+\begin{equation}
+  {2*0.0344^2\over 0.0535} \approx 4.42\,\, [cm]
+\end{equation}
+
+\newpage
+
+\section{Problem solution}
+
+\subsection{Test scenarios}
+To be able to evaluate processing algorithms on real radar data, a number of scanning scenarios had to be developed. These vary from simple to more complex set ups, with varying amounts of objects, wall depths and wall materials.
+
+\subsubsection{Test case $\alpha$}
+To test the most basic functionality of the radar equipment, the simplest scenario is used, in which a scattering object is raised above ground on a narrow platform.
+
+\subsubsection{Test case $\beta$}
+Being able to evaluate the radar image due to a wall in itself gives insight into how more complex radar images should be processed, and as such this scenario simply scans a flat wall.
+
+\subsubsection{Test case $\gamma$}
+This scenario places an object in front of a flat wall. The purpose is to evaluate the radar image generated when a flat object (a wall) is located behind an object.
+
+\subsubsection{Test case $\delta$}
+This scenario is a mirror of test case $\gamma$, with the difference being that the radar scans the blocking side of the wall, with the scatterer being located behind the wall.
+
+\subsection{Creating a matched signal wavform for pulse compression}
+
+\subsection{Applying digital filters}
+
+\subsection{Generating an image}
+
+\subsection{Specifying parameter requirements}
+
+\newpage
+
+\section{Real-time implementation}
+
+\subsection{Verification of implementation}
+
+\newpage
+
+\section{Managing fuzzy scanning}
+To enable a user more freedom in scanning a surface, the radar echoes must be aligned based on the movement of the handheld radar. In this section I present a detailed analysis of how such a system can be built, what components are required and the algorithms needed to align the radar data.
+
+\newpage
+
+\section{Results}
+
+\newpage
+
+\section{Future work}
+
+\newpage
+
+\appendix
+\section{Radio frequency spectrum in Sweden}
+
+\begin{table}[htbp]
+\caption{}
+\begin{tabular}{|r|r|l|l|}
+\hline
+\multicolumn{1}{|l|}{Fr.o.m MHz} & \multicolumn{1}{l|}{T.o.m MHz} & 
+Duplexband & Användning \\ \hline
+880 & 915 & 925 - 960 & GSM \& UMTS \\ \hline
+916 & 921 & 871 - 876 & TRA-ECS \\ \hline
+921 & 925 & 876 - 880 & GSM-R \\ \hline
+925 & 960 & 880 - 915 & GSM \& UMTS \\ \hline
+960 & 1164 &   & Luftfartsradio (DME) \\ \hline
+1026 & 1034 & 1086 - 1094 & Luftfartsradio (SSR) \\ \hline
+1086 & 1094 & 1026 - 1034 & Luftfartsradio (SSR) \\ \hline
+1164 & 1215 &   & GALILEO \\ \hline
+1164 & 1215 &   & Luftfartsradio (DME) \\ \hline
+1215 & 1240 &   & Radiolokalisering \\ \hline
+1215 & 1237 &   & GPS \\ \hline
+1215 & 1240 &   & Radionavigering för luftfart \\ \hline
+1237 & 1260 &   & GLONASS \\ \hline
+1240 & 1300 &   & Radionavigering för luftfart \\ \hline
+1240 & 1300 &   & Amatörradio \\ \hline
+1260 & 1300 &   & GALILEO \\ \hline
+1300 & 1350 &   & Militär användning \\ \hline
+1300 & 1350 &   & Radionavigering för luftfart \\ \hline
+1300 & 1350 &   & Radiolokalisering \\ \hline
+1330 & 1400 &   & Radioastronomi Onsala \\ \hline
+1350 & 1375 &   & Militär användning \\ \hline
+1350 & 1355 &   & Radiolokalisering \\ \hline
+1375 & 1400 & 1427 - 1452 & Fast radio punkt till punkt \\ \hline
+1400 & 1427 &   & Radioastronomi Onsala \\ \hline
+1427 & 1452 & 1375 - 1400 & Fast radio punkt till punkt \\ \hline
+1452 & 1479.5 &   & Rundradio (T-DAB) \\ \hline
+1479.5 & 1492 &   & Ljudrundradio satellit \\ \hline
+1492 & 1518 &   & Militär användning \\ \hline
+1518 & 1525 &   & Militär användning \\ \hline
+1518 & 1525 &   & Satellit \\ \hline
+1525 & 1559 &   & Satellit \\ \hline
+1525 & 1530 &   & Militär användning \\ \hline
+1525 & 1559 &   & Satellit \\ \hline
+1530 & 1535 &   & Militär användning \\ \hline
+1535 & 1544 &   & Militär användning \\ \hline
+1544 & 1545 &   & Sjöfartsradio \\ \hline
+1545 & 1559 &   & Militär användning \\ \hline
+1559 & 1591 &   & GALILEO \\ \hline
+1563 & 1587 &   & GPS \\ \hline
+1591 & 1610 &   & GLONASS \\ \hline
+1610 & 1626.5 &   & Jordstationer (mobila satellitsystem) \\ \hline
+\end{tabular}
+\label{Frequency spectrum allocation in Sweden}
+\end{table}
+
+\begin{table}[htbp]
+\caption{}
+\begin{tabular}{|r|r|l|l|}
+\hline
+1610.6 & 1613.8 &   & Radioastronomi Onsala \\ \hline
+1613.8 & 1626.5 &   & Jordstationer (mobila satellitsystem) \\ \hline
+1626.5 & 1645.5 &   & Jordstationer (mobila satellitsystem) \\ \hline
+1645.5 & 1646.5 &   & Sjöfartsradio \\ \hline
+1646.5 & 1660.5 &   & Jordstationer (mobila satellitsystem) \\ \hline
+1660 & 1670 &   & Radioastronomi Onsala \\ \hline
+1668 & 1670 &   & Jordstationer (mobila satellitsystem) \\ \hline
+1670 & 1675 &   & Jordstationer (mobila satellitsystem) \\ \hline
+1675 & 1690 &   & Meteorologi via satellit \\ \hline
+1690 & 1700 &   & Meteorologi via satellit \\ \hline
+1700 & 1710 &   & Meteorologi via satellit \\ \hline
+1710 & 1785 & 1805 - 1880 & GSM \& UMTS \\ \hline
+1718.8 & 1722.2 &   & Radioastronomi Onsala \\ \hline
+1785 & 1805 &   & Övrigt \\ \hline
+1805 & 1880 & 1710 - 1785 & GSM \& UMTS \\ \hline
+1880 & 1900 &   & DECT \\ \hline
+1900 & 1920 &   & UMTS \\ \hline
+1920 & 1980 & 2110 - 2170 & UMTS \\ \hline
+1920 & 1980 & 2110 - 2170 & UMTS \\ \hline
+1980 & 2010 & 2170 - 2200 & Jordstationer (mobila satellitsystem) \\ 
+\hline
+2010 & 2025 &   & UMTS \\ \hline
+2025 & 2110 &   & Militär användning \\ \hline
+2025 & 2110 & 2200 - 2290 & Rymdfarkostkontroll \\ \hline
+2110 & 2170 & 1920 - 1980 & UMTS \\ \hline
+2170 & 2200 & 1980 - 2010 & Satellit \\ \hline
+2200 & 2290 &   & Militär användning \\ \hline
+2200 & 2290 & 2025 - 2110 & Rymdfarkostkontroll \\ \hline
+2290 & 2300 &   & Militär användning \\ \hline
+2300 & 2450 &   & Landmobil radio \\ \hline
+2300 & 2450 &   & Amatörradio \\ \hline
+2400 & 2483.5 &   & Dataöverföring trådlösa nätverk \\ \hline
+2400 & 2483.5 &   & Allmän kortdistansradio ISM \\ \hline
+2400 & 2450 &   & Militär användning \\ \hline
+2400 & 2483.5 &   & Allmän kortdistansradio ISM \\ \hline
+2446 & 2454 &   & RFID \\ \hline
+2450 & 2483.5 &   & Militär användning \\ \hline
+2450 & 2483.5 &   & Landmobil radio \\ \hline
+2483.5 & 2500 &   & Satellit \\ \hline
+2500 & 2690 &   & TRA-ECS \\ \hline
+2690 & 2700 &   & Radioastronomi Onsala \\ \hline
+\end{tabular}
+\label{Frequency spectrum allocation in Sweden}
+\end{table}
+
+\begin{table}[htbp]
+\caption{}
+\begin{tabular}{|r|r|l|l|}
+\hline
+2700 & 2900 &   & Radionavigering för luftfart \\ \hline
+2900 & 3100 &   & Radionavigering för sjöfart \\ \hline
+2900 & 3100 &   & Sjöfartsradar \\ \hline
+2900 & 3100 &   & Militär användning \\ \hline
+3100 & 3300 &   & Radiolokalisering \\ \hline
+3100 & 3300 &   & Militär användning \\ \hline
+3260 & 3267 &   & Radioastronomi Onsala \\ \hline
+3300 & 3400 &   & Radiolokalisering \\ \hline
+3300 & 3400 &   & Militär användning \\ \hline
+3332 & 3339 &   & Radioastronomi Onsala \\ \hline
+3345.8 & 3352.5 &   & Radioastronomi Onsala \\ \hline
+3400 & 3600 &   & TRA-ECS \\ \hline
+3600 & 3800 &   & TRA-ECS \\ \hline
+3800 & 4200 &   & Satellit \\ \hline
+3900 & 4200 &   & Militär användning \\ \hline
+4200 & 4400 &   & Radionavigering för luftfart \\ \hline
+4400 & 4500 &   & Militär användning \\ \hline
+4500 & 4800 &   & Militär användning \\ \hline
+4500 & 4800 & 6725 - 7075 &  \\ \hline
+4800 & 4990 &   & Militär användning \\ \hline
+4825 & 4835 &   & Radioastronomi Onsala \\ \hline
+4950 & 4990 &   & Radioastronomi Onsala \\ \hline
+4990 & 5000 &   & Radioastronomi Onsala \\ \hline
+5000 & 5150 &   & Radionavigering för luftfart \\ \hline
+5000 & 5150 &   & Radionavigering för luftfart \\ \hline
+5000 & 5150 &   & Radionavigering för luftfart \\ \hline
+5091 & 5150 &   & Radionavigering för luftfart \\ \hline
+5150 & 5250 &   & Luftfartsradio (telemetri) \\ \hline
+5150 & 5250 &   & Radionavigering för luftfart \\ \hline
+5150 & 5250 &   & Dataöverföring Trådlösa nätverk \\ \hline
+5250 & 5350 &   & Dataöverföring Trådlösa nätverk \\ \hline
+5250 & 5255 &   & Militär användning \\ \hline
+5250 & 5350 &   & Kortdistansradio (SRD) \\ \hline
+5255 & 5350 &   & Militär användning \\ \hline
+5350 & 5460 &   & Militär användning \\ \hline
+5440 & 5440 &   & Radionavigering för luftfart \\ \hline
+5460 & 5470 &   & Radionavigering för luftfart \\ \hline
+5460 & 5470 &   & Militär användning \\ \hline
+5470 & 5725 &   & Dataöverföring Trådlösa nätverk \\ \hline
+5470 & 5650 &   & Radionavigering för sjöfart \\ \hline
+5470 & 5570 &   & Militär användning \\ \hline
+5470 & 5725 &   & Dataöverföring Trådlösa nätverk \\ \hline
+5525 & 5525 &   & Radionavigering för luftfart \\ \hline
+5570 & 5650 &   & Militär användning \\ \hline
+\end{tabular}
+\label{Frequency spectrum allocation in Sweden}
+\end{table}
+
+\newpage
+\section{Matlab and Scilab source code}
+
+\newpage
+\section{Real-time implementation source code}
+
+\bibliographystyle{acm-sigchi}
+\bibliography{thesis_references}
+
+\end{document}

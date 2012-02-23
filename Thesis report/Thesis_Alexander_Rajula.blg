@@ -1,0 +1,59 @@
+This is BibTeX, Version 0.99d (TeX Live 2011)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: Thesis_Alexander_Rajula.aux
+The style file: acm-sigchi.bst
+Database file #1: thesis_references.bib
+Warning--I'm ignoring radar-history's extra "journal" field
+--line 649 of file thesis_references.bib
+Warning--to sort, need author or key in vivaldi-antenn
+Warning--empty booktitle in freeman-sar-mars
+Warning--empty booktitle in chan-twsar
+Warning--empty booktitle in fasih-gpu
+Warning--empty booktitle in liu-weather-sar
+Warning--empty booktitle in thomas-2d-apodization
+Warning--empty booktitle in viet-ffbp-freq-comparison
+Warning--can't use both volume and number fields in viet-ffbp-freq-comparison
+Warning--empty booktitle in viet-image-quality-uwb
+Warning--empty booktitle in viet-suppress-rfi
+You've used 19 entries,
+            2243 wiz_defined-function locations,
+            632 strings with 7507 characters,
+and the built_in function-call counts, 7707 in all, are:
+= -- 783
+> -- 237
+< -- 0
++ -- 103
+- -- 80
+* -- 490
+:= -- 1077
+add.period$ -- 54
+call.type$ -- 19
+change.case$ -- 93
+chr.to.int$ -- 0
+cite$ -- 29
+duplicate$ -- 342
+empty$ -- 676
+format.name$ -- 80
+if$ -- 1764
+int.to.chr$ -- 0
+int.to.str$ -- 19
+missing$ -- 21
+newline$ -- 95
+num.names$ -- 36
+pop$ -- 145
+preamble$ -- 1
+purify$ -- 78
+quote$ -- 0
+skip$ -- 310
+stack$ -- 0
+substring$ -- 697
+swap$ -- 143
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 68
+warning$ -- 10
+while$ -- 53
+width$ -- 21
+write$ -- 183
+(There were 11 warnings)

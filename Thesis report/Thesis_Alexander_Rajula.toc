@@ -1,0 +1,51 @@
+\contentsline {section}{Abstract}{III}{Doc-Start}
+\contentsline {section}{Acknowledgements}{V}{Doc-Start}
+\contentsline {section}{List of Figures}{VIII}{section*.1}
+\contentsline {section}{List of Tables}{VIII}{section*.2}
+\contentsline {section}{\numberline {1}Introduction}{1}{section.1}
+\contentsline {subsection}{\numberline {1.1}Introducing synthetic aperture radar systems}{1}{subsection.1.1}
+\contentsline {subsection}{\numberline {1.2}A typical SAR system}{2}{subsection.1.2}
+\contentsline {subsection}{\numberline {1.3}Problem statement}{2}{subsection.1.3}
+\contentsline {subsection}{\numberline {1.4}Thesis scope}{3}{subsection.1.4}
+\contentsline {subsection}{\numberline {1.5}Thesis outline}{3}{subsection.1.5}
+\contentsline {subsection}{\numberline {1.6}Research questions}{3}{subsection.1.6}
+\contentsline {subsection}{\numberline {1.7}Methodology}{3}{subsection.1.7}
+\contentsline {section}{\numberline {2}Background and related work}{4}{section.2}
+\contentsline {subsection}{\numberline {2.1}The radar range equation}{4}{subsection.2.1}
+\contentsline {subsection}{\numberline {2.2}Signal waveforms}{5}{subsection.2.2}
+\contentsline {subsection}{\numberline {2.3}Azimuth doppler effects}{6}{subsection.2.3}
+\contentsline {subsection}{\numberline {2.4}Time-bandwidth product effects}{6}{subsection.2.4}
+\contentsline {subsection}{\numberline {2.5}Pulse compression}{7}{subsection.2.5}
+\contentsline {subsection}{\numberline {2.6}Pulse repetition frequency and resolution}{8}{subsection.2.6}
+\contentsline {subsection}{\numberline {2.7}Radio frequency interference suppression}{10}{subsection.2.7}
+\contentsline {subsection}{\numberline {2.8}SAR imaging}{11}{subsection.2.8}
+\contentsline {subsubsection}{\numberline {2.8.1}Global Backprojection}{11}{subsubsection.2.8.1}
+\contentsline {subsubsection}{\numberline {2.8.2}Local Backprojection}{12}{subsubsection.2.8.2}
+\contentsline {subsection}{\numberline {2.9}SAR image apodization}{13}{subsection.2.9}
+\contentsline {subsection}{\numberline {2.10}Related work}{13}{subsection.2.10}
+\contentsline {subsection}{\numberline {2.11}Sources of RF interference}{14}{subsection.2.11}
+\contentsline {section}{\numberline {3}System description}{15}{section.3}
+\contentsline {subsection}{\numberline {3.1}System requirements}{15}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}System model and design}{15}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}Implementation of system model}{15}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}Verification of system model}{16}{subsection.3.4}
+\contentsline {subsection}{\numberline {3.5}Hardware description}{17}{subsection.3.5}
+\contentsline {subsubsection}{\numberline {3.5.1}Antenna far-field calculation}{18}{subsubsection.3.5.1}
+\contentsline {section}{\numberline {4}Problem solution}{19}{section.4}
+\contentsline {subsection}{\numberline {4.1}Test scenarios}{19}{subsection.4.1}
+\contentsline {subsubsection}{\numberline {4.1.1}Test case $\alpha $}{19}{subsubsection.4.1.1}
+\contentsline {subsubsection}{\numberline {4.1.2}Test case $\beta $}{19}{subsubsection.4.1.2}
+\contentsline {subsubsection}{\numberline {4.1.3}Test case $\gamma $}{19}{subsubsection.4.1.3}
+\contentsline {subsubsection}{\numberline {4.1.4}Test case $\delta $}{19}{subsubsection.4.1.4}
+\contentsline {subsection}{\numberline {4.2}Creating a matched signal wavform for pulse compression}{19}{subsection.4.2}
+\contentsline {subsection}{\numberline {4.3}Applying digital filters}{19}{subsection.4.3}
+\contentsline {subsection}{\numberline {4.4}Generating an image}{19}{subsection.4.4}
+\contentsline {subsection}{\numberline {4.5}Specifying parameter requirements}{19}{subsection.4.5}
+\contentsline {section}{\numberline {5}Real-time implementation}{20}{section.5}
+\contentsline {subsection}{\numberline {5.1}Verification of implementation}{20}{subsection.5.1}
+\contentsline {section}{\numberline {6}Managing fuzzy scanning}{21}{section.6}
+\contentsline {section}{\numberline {7}Results}{22}{section.7}
+\contentsline {section}{\numberline {8}Future work}{23}{section.8}
+\contentsline {section}{\numberline {A}Radio frequency spectrum in Sweden}{24}{appendix.A}
+\contentsline {section}{\numberline {B}Matlab and Scilab source code}{28}{appendix.B}
+\contentsline {section}{\numberline {C}Real-time implementation source code}{29}{appendix.C}

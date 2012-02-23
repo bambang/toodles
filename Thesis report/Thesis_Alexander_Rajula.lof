@@ -1,0 +1,12 @@
+\contentsline {figure}{\numberline {1}{\ignorespaces Rudimentary radar system}}{1}{figure.1}
+\contentsline {figure}{\numberline {2}{\ignorespaces Typical SAR system}}{2}{figure.2}
+\contentsline {figure}{\numberline {3}{\ignorespaces Typical chirp waveform}}{5}{figure.3}
+\contentsline {figure}{\numberline {4}{\ignorespaces Chirp signal spectrum with TBP of 10.}}{7}{figure.4}
+\contentsline {figure}{\numberline {5}{\ignorespaces Chirp signal spectrum with TBP of 40.}}{7}{figure.5}
+\contentsline {figure}{\numberline {6}{\ignorespaces Chirp signal spectrum with TBP of 100.}}{8}{figure.6}
+\contentsline {figure}{\numberline {7}{\ignorespaces Pulse-compressed chirp signal with TBP of 100.}}{8}{figure.7}
+\contentsline {figure}{\numberline {8}{\ignorespaces Illuminated area over the first-null beamwidth}}{9}{figure.8}
+\contentsline {figure}{\numberline {9}{\ignorespaces Simulated radar image with TBP 30 and azimuth beamwidth 80 degrees}}{16}{figure.9}
+\contentsline {figure}{\numberline {10}{\ignorespaces Pulse-compressed radar image with TBP 30 and azimuth beamwidth 80 degrees}}{17}{figure.10}
+\contentsline {figure}{\numberline {11}{\ignorespaces GBP image of pulse-compressed image with TBP 30 and azimuth beamwidth 80 degrees}}{17}{figure.11}
+\contentsline {figure}{\numberline {12}{\ignorespaces 2D FFT of GBP image with TBP 30 and azimuth beamwidth 80 degrees}}{18}{figure.12}

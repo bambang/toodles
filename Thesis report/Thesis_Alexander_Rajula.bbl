@@ -1,0 +1,113 @@
+\begin{thebibliography}{10}
+
+\bibitem{vivaldi-antenn}
+http://www.imego.com/research-and-development/electromagnetic-sensors-and-systems/industrial-solutions/ultra-wideband-radar.aspx.
+
+\bibitem{ahmed-thesis}
+Ahmed, I.
+\newblock {\em Study of the Local Backprojection Algorithm for Image Formation
+  in Ultra Wideband Synthetic Aperture Radar}.
+\newblock Blekinge Institute of Technology Doctoral Dissertation Series, 2008.
+
+\bibitem{freeman-sar-mars}
+Anthony~Freeman, B.~C.
+\newblock A uhf sar mission to mars (2003).
+
+\bibitem{chan-twsar}
+Chan, B.
+\newblock Contourlet domain hidden markov tree based detection algorithm for
+  drdc through-wall sar (twsar) system applications.
+\newblock vol.~7699 (Orlando, FL, United states, 2010), The Society of
+  Photo--Optical Instrumentation Engineers (SPIE) --.
+
+\bibitem{fasih-gpu}
+Fasih, A., and Hartley, T.
+\newblock Gpu-accelerated synthetic aperture radar backprojection in cuda
+  (2010).
+\newblock 1408 -- 13.
+
+\bibitem{fransson-damaged-forest}
+Fransson, J.~E., Walter, F., Blennow, K., Gustavsson, A., and Ulander, L.~M.
+\newblock Detection of storm-damaged forested areas using airborne carabas-ii
+  vhf sar image data.
+\newblock {\em IEEE Transactions on Geoscience and Remote Sensing 40}, 10
+  (2002), 2170 -- 2175.
+
+\bibitem{radar-history}
+Guarnieri, M.
+\newblock The early history of radar.
+\newblock {\em IEEE Industrial Electronics Magazine 4}, 3 (Sept. 2010), 36 --
+  42.
+
+\bibitem{hulsmeyer}
+H\"{u}lsmeyer, C.
+\newblock Verfahren, um entfernte metallische gegenst\"ande mittels
+  elektrischer wellen einem beobachter zu melden.
+\newblock {\em Kaiserliches Patentamt, Patent nr 165546}, DE 165546 (1904).
+
+\bibitem{liu-weather-sar}
+Liu, S., Hanssen, R., and Mika, A.
+\newblock On the value of high-resolution weather models for atmospheric
+  mitigation in sar interferometry.
+\newblock vol.~2 (Cape Town, South africa, 2009), II749 -- II752.
+
+\bibitem{mats-detection}
+Pettersson, M.
+\newblock Detection of moving targets in wideband sar.
+\newblock {\em Aerospace and Electronic Systems, IEEE Transactions on 40}, 3
+  (july 2004), 780 -- 796.
+
+\bibitem{scilab}
+{Scilab Consortium}.
+\newblock {\em Scilab: The free software for numerical computation}.
+\newblock Scilab Consortium, Digiteo, Paris, France, 2011.
+
+\bibitem{thomas-2d-apodization}
+Sjogren, T.~K., Vu, V.~T., and Pettersson, M.~I.
+\newblock 2d apodization in uwb sar using linear filtering (Vancouver, BC,
+  Canada, 2011).
+\newblock 1689 -- 1692.
+
+\bibitem{thomas-lic}
+Sjögren, T.
+\newblock {\em Development and evaluation of SAR algorithms for image formation
+  and speed estimation in wideband SAR}.
+\newblock Blekinge Institute of Technology Licentiate Dissertation Series,
+  2010.
+
+\bibitem{skolnik}
+Skolnik, M.~I.
+\newblock {\em Radar Handbook}, 3~ed.
+\newblock McGraw-Hill Professional, 2009.
+
+\bibitem{viet-dissertation}
+Vu, V.~T.
+\newblock {\em Ultrawideband-Ultrawidebeam Synthetic Aperture Radar – Signal
+  Processing and Applications}, 13~ed.
+\newblock Blekinge Institute of Technology Doctoral Dissertation Series, 2011.
+
+\bibitem{viet-ffbp-freq-comparison}
+Vu, V.~T., Sjogren, T.~K., and Pettersson, M.~I.
+\newblock A comparison between fast factorized backprojection and
+  frequency-domain algorithms in uwb lowfrequency sar.
+\newblock vol.~4 (Boston, MA, United states, 2008), IV1284 -- IV1287.
+
+\bibitem{viet-image-quality-uwb}
+Vu, V.~T., Sjogren, T.~K., Pettersson, M.~I., and Gustavsson, A.
+\newblock Definition on sar image quality measurements for uwb sar.
+\newblock vol.~7109 (Cardiff, Wales, United kingdom, 2008), SPIE Europe.
+
+\bibitem{viet-rfi-suppression-ale}
+Vu, V.~T., Sjogren, T.~K., Pettersson, M.~I., Hakansson, L., Gustavsson, A.,
+  and Ulander, L. M.~H.
+\newblock Rfi suppression in ultrawideband sar using an adaptive line enhancer.
+\newblock {\em IEEE Geoscience and Remote Sensing Letters 7}, 4 (2010), 694 --
+  698.
+
+\bibitem{viet-suppress-rfi}
+Vu, V.~T., Sjogren, T.~K., Pettersson, M.~I., and Hakasson, L.
+\newblock An approach to suppress rfi in ultrawideband low frequency sar
+  (Washington DC, United states, 2010).
+\newblock 1381 -- 1385.
+
+\end{thebibliography}

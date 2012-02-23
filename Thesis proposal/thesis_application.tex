@@ -1,0 +1,251 @@
+\documentclass{chi2012}
+
+\usepackage{graphics}
+\usepackage{booktabs}
+\usepackage[swedish]{babel}
+\usepackage[utf8]{inputenc}
+
+\usepackage{times}
+% To make various LaTeX processors do the right thing with page size.
+\special{papersize=8.5in,11in}
+\setlength{\paperheight}{11in}
+\setlength{\paperwidth}{8.5in}
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+\usepackage[pdftex]{hyperref}
+\hypersetup{%
+pdftitle={Through-wall imaging using a hand-held UWB SAR system},
+pdfauthor={Alexander Rajula},
+pdfkeywords={},
+bookmarksnumbered,
+pdfstartview={FitH},
+colorlinks,
+citecolor=black,
+filecolor=black,
+linkcolor=black,
+urlcolor=black,
+breaklinks=true,
+}
+
+%\pagenumbering{arabic}  % Arabic page numbers for submission.  Remove this line to eliminate page numbers for the camera ready copy
+
+\begin{document}
+\textbf{\large{Participating student information}}
+\\\\
+\textbf{Name:} Alexander Rajula
+\\
+\textbf{Personal number:} 881024-2472
+\\
+\textbf{Email:} alexander@rajula.org
+\\\\
+\textbf{\large{Thesis proposal information}}
+\\\\
+\textbf{Application date:} 2012-01-14
+\\
+\textbf{Number of credits:} 30 ECTS (30 hp)
+\\
+\textbf{Company:} Cinside AB
+\\
+\textbf{Company URL:} www.cinside.se
+\\\\
+\textbf{Thesis contact person}
+\\
+\indent Name: Dan Axelsson
+\\
+\indent Email: danaxe@cinside.se
+\\
+\indent Phone number: 013-212170
+\\\\
+\textbf{Thesis starting date:} 2012-01-16
+\\
+\textbf{Thesis ending date:} 2012-06-03
+\\
+\textbf{Thesis language:} English
+\\\\
+\textbf{BTH supervisor request:} Mats Pettersson
+
+\newpage
+
+% Use this command to override the default ACM copyright statement
+% (e.g. for preprints). Remove for camera ready copy.
+\toappear{}
+
+\title{Through-wall imaging using a hand-held UWB SAR system}
+\numberofauthors{1}
+\author{
+  \alignauthor Alexander Rajula\\
+    \affaddr{Blekinge Institute of Technology}\\
+    \affaddr{Karlskrona}\\
+    \email{alexander@rajula.org}\\
+}
+
+\maketitle
+
+\begin{abstract}
+In this master's thesis proposal, I describe the current research in the field of synthetic aperture radar (SAR) systems and outline the problems related to creating a close-range hand-held SAR scanning system. I present the challenges associated with this thesis, the problems which have to be solved, and a description of the systems which will be used for solving the problem. In addition, I present a risk analysis and a detailed time plan containing all major steps required to complete the thesis.
+\end{abstract}
+
+\section{Background}
+The area of synthetic aperture radar (SAR) processing has since the early nineties gained renewed interest within the scientific and engineering community due to the ever increasing computer processing speeds. SAR systems typically employ one or two antennas  which are physically scanned over a vast area \cite{Skolnik}. This is the process of forming a synthetic aperture. Data is recorded over the synthetic aperture using a number of repeated transmissions and receptions. The total amount of reflected radar signal over the aperture is collected and processed using a number of signal processing subsystems. It has been shown that human-readable images can be generated using SAR data, for instance in \cite{folkesson-stem-volume} where stem volume information is extracted from SAR images.
+\\
+The ability of using SAR to generate images of an area is interesting, since it makes it possible to image an area without the need for optical wavelength light - radar operates in the radiofrequency range of the electromagnetic spectrum. Due to this fact, SAR systems, and radar systems in general, can be designed to work in a variety of atmospheric conditions, including fog and heavy rain.
+\\
+There are a number of important applications for SAR imaging, for instance weather forecasting \cite{liu-weather-sar}, imaging of objects in space \cite{freeman-sar-mars}, and damage assessment in nature \cite{fransson-damaged-forest}.\\
+
+On the more technical side of SAR systems, much work has been done at Blekinge Institute of Technology within the department of Electrical Engineering and Applied Signal Processing. A general SAR system is built in several modules:
+\begin{itemize}
+  \item Antenna and hardware design
+  \item Waveform design
+  \item Pulse compression after reception
+  \item Radiofrequency interference (RFI) suppression
+  \item SAR imaging using time-domain or frequency-domain algorithms
+  \item Image apodization (sidelobe suppression)
+\end{itemize}
+
+The exact selection of waveform, pulse compression, RFI suppression, SAR imaging algorithm and image apodization depends on the SAR system studied and its application. The most recent work at BTH has been focused on ultra-bandwidth, ultra-beamwidth (UWB) SAR systems, in which a large fractional bandwidth is used in conjunction with antennas with broad radiation characteristics \cite{viet-dissertation}.
+
+\subsection{Hand-held}
+Few works have been found in which a handheld radar and SAR is combined, with the exception of \cite{chan-twsar}, in which the author evaluates a SAR system (through-wall SAR) for explicitly scanning through walls. The author describes wall compensation algorithms, which might be interesting to evaluate in this thesis.
+
+\subsection{Hidden objects}
+There has been research done in which automatic target regognition is performed on SAR images, for instance in \cite{bhanu-occluded} where they employ a hidden Markov model to classify objects in a SAR image. Although this thesis is not focused on target recognition per se, it is interesting to see that there exists the possibility of adding automatic target recognition, although whether it is computationally feasible is at this stage unknown.
+
+\section{Challenge and problem focus}
+Most SAR systems today are fastened on land-based vehicles or airplanes, since it becomes easy to quickly capture vast areas. The problem I am trying to solve in this thesis is different. It involves the objective of imaging the contents within solid objects, for instance the spacing inside a wall, or the contents of a container. The ideal outcome is a human-recognizable false-colored image. I propose to use a hand-held radar device, and by physically moving the radar over the container in question perform SAR imaging.
+\\
+The SAR data then needs processing, and it is this processing which is the main issue in this thesis. In addition, I will need to investigate which kind of radar waveform should be used, what antennas are most suitable in this hand-held scenario, and how the problem of processing the data in the case of irregular scanning patterns should be solved.
+\\
+There are numerous application examples for a system of this kind, for instance within the military, in which data must be gathered as to the contents of possibly hazardous containers, or in a more friendly environment where one wants to probe the contents of a wall to detect power lines and plumbing.
+
+\subsection{Penetration to view object}
+Since most SAR systems operate in a scenario with air propagation and ground reflection, assumptions made for that case may not be applicable in this thesis. Since the scenario in this thesis is wall penetration and reflection, great care must be taken to ensure the correct operating frequency and bandwidth of the radar system to successfully accomplish the task of penetration and reflection, keeping in mind that the reflected signal must be strong enough to be of any use. In technical terms, the signal to interference and noise ratio must be high enough for the SAR imaging algorithm to work.
+
+\subsection{Real-time processing}
+For the system to work in a real-time processing scenario, imaging algorithms must not be overly complex. This puts constraints on either the maximum surface area which can be imaged at a time, or the tradeoff between image quality and algorithm processing time.
+
+\section{Method and approach}
+By doing an extensive literature survey, and examining the most recent publications and dissertations in the area of SAR, I will gain insight into the field. This will allow me to discern which types of radar systems and radar signal processing approaches are applicable for solving the problem at hand, and if modification to existing algorithms and approaches will be required.
+When current methods and approaches have been studied, I will implement a simulation model in Scilab\cite{scilab} in which various algorithms can be tested and evaluated based on first standard corner reflector data and then real radar measurement data. This is an iterative process which will give insight into parameter requirements for the solution to work, i.e. distance to target, radar sweep speed, which materials are susceptible for radar scanning etc.
+\\
+When the problem has been successfully solved in Scilab and if there is any time left, I will continue with real-time implementation of the algorithms on the hardware provided by Cinside.
+
+\subsection{Research questions}
+Since this is a technical thesis, I am interested in evaluating whether a set of existing approaches of SAR imaging are valid in the scenario outlined above:
+\begin{enumerate}
+  \item Is the regular Chirp waveform suitable, and if not, which waveform should be used?
+  \item Is Global Backprojection applicable for imaging the radar data?
+  \item Is Radio Frequency Interference suppression needed?
+  \item Is apodization needed?
+\end{enumerate}
+
+\subsection{Hypotheses}
+To match the research questions, the following a priori hypotheses are proposed:
+\begin{enumerate}
+  \item I believe that the regular Chirp waveform is suitable
+  \item I believe that Global Backprojection in itself will not be sufficient
+  \item I do not believe that Radio Frequency Interference suppression will need to be employed due to the domestic environment in which the radar data will be captured, although it might be needed for outdoor environments
+  \item I at this time have no hypothesis regarding apodization
+\end{enumerate}
+
+\section{Model building}
+To be able to solve the complex problem at hand, a simulation model must be built in Scilab. One must be able to choose among different signals (eg. chirp), pulse repetition frequencies, radio-frequency interference filters, SAR imaging algorithms and apodization filters, although all subsystems may not be needed.
+
+\subsection{Using real data}
+When a fully functional simulation model has been built and verified, the system can be tested with real radar data provided by the scanning equipment from Cinside. A number of scanning scenarios must be designed and performed to evaluate the model, these scenarios will be based on use cases guided by SAR equations with regards to scanning speed and pulse repetition frequency. This will tell us whether the resulting images are of a sufficient quality to be of any use.
+
+\section{Goal and results}
+If the problem is solved, the algorithms can be implemented on a computer chip to perform image generation in real time. This will make it possible to in the long term design a device with a screen integrated with the hand-held scanning device which displays the contents of a container, which is not included in the scope of this thesis.
+\\
+In addition, if I succeed in this endeavor, I will have shown that a set of signal processing algorithms can be used for short-distance SAR systems, and also have set constraints on system parameters required for image generation to work.
+
+\section{Risks}
+The main risk in this thesis is the scope of the project. It is at this early stage unknown how much time and effort will be required to perform evaluation, modification and implementation of SAR algorithms and development. The previous scope description encompasses a wide range of tasks, which might not all fit into the time scope of the project. If time is short, the project can be condensed to only involve Scilab modelling and evaluation, leaving out realtime implementation.
+
+\section{Project plan}
+In addition to the preliminary project plan outlined below, project status will be reported at the end of each week with a short weekly report which is sent to the thesis supervisors.\\\\
+% Table generated by Excel2LaTeX from sheet 'Sheet1'
+\begin{tabular}{rl}
+
+Week (2012) &       Task \\
+\toprule
+         3 & Create thesis report \\
+
+           & Read Viet Thuy Vu's dissertation \\
+
+           & Read Merill Skolnik's radar handbook \\
+
+           & Read Thomas Sjögren's licenciate \\
+
+           & Start writing thesis background chapter\\& and add background to thesis proposal \\
+
+         4 & Read selection of recent SAR papers \\
+
+           & Finish thesis proposal \\
+
+	& Study the Global Backprojection\\& algorithm and related signal processing\\& techniques for SAR\\
+
+           & More writing on thesis background chapter \\
+
+         5 & Getting to grips with Scilab \\
+
+           & Implement Global Backprojection\\
+
+	& Implement simulation of radar data\\& to test Global Backprojection\\
+
+           & Finish  background chapter in thesis report \\
+
+         6 & Continue model building \\
+
+         7 & Continue model building \\
+
+           & Update thesis report with text about SAR\\& code\\
+
+         8 & Validate and evaluate Scilab model \\
+
+         9 & Validate and evaluate Scilab model \\
+
+        10 & Specify parameter requirements \\
+
+           & Include results in report \\
+
+        11 & Make an effort to improve SAR algorithms\\& if needed\\
+
+           & Create chapter in thesis report on improvement\\& to SAR algorithms \\
+
+        12 & Apply real radar data in simulation model \\
+
+           & Evaluate results \\
+
+           & Add real data results to report \\
+
+        13 & Continue real data evaluation \\
+
+        14 & Do I have acceptable system performance? \\
+
+        15 & Finish simulation model and results in report \\
+
+        16 & Start real time implementation of SAR\\& algorithms \\
+
+        17 & More real time implementation work \\
+
+        18 & More real time implementation work \\
+
+        19 & Reflect on whether I really have acceptable\\& system performance \\
+
+        20 & Finish thesis report \\
+
+        21 & Finish thesis report \\
+
+        21 & Create thesis presentation \\
+
+        22 & Thesis presentation \\
+
+\bottomrule
+
+\end{tabular}  
+
+\bibliographystyle{acm-sigchi}
+\bibliography{thesis_application}
+
+\end{document}
+
