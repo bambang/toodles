@@ -73,30 +73,30 @@ function [chirp, matched, compressed_signal, swwf, radar_image, pc_image, sar_im
     da.y_label.text = "Range";
     da.x_label.text = "Crossrange";
     figure("Figure_name", "Scene");
-    mesh(swwf);
+    mesh(abs(swwf));
     
     da = gda();
     da.y_label.text = "Range";
     da.x_label.text = "Crossrange";
     figure("Figure_name", "Radar image");
-    mesh(radar_image);
+    mesh(abs(radar_image));
     
     da = gda();
     da.y_label.text = "Range";
     da.x_label.text = "Crossrange";
     figure("Figure_name", "Pulse-compressed radar image");
-    mesh(pc_image);
+    mesh(abs(pc_image));
     
     da = gda();
     da.y_label.text = "Range";
     da.x_label.text = "Crossrange";
     figure("Figure_name", "SAR image");
-    mesh(sar_image);
+    mesh(abs(sar_image));
     
     da = gda();
     da.y_label.text = "Range frequency";
     da.x_label.text = "Crossrange frequency";
     figure("Figure_name", "SAR image FFT");
-    mesh(sar_fft);
+    mesh(abs(sar_fft));
     
 endfunction

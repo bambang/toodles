@@ -24,7 +24,7 @@ void pulse_compressed_signal(unsigned int kernel_length);
 void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output);
 void filter_dc(unsigned int nrows, unsigned int ncols);
 int write_to_file();
-void simulate();
+int simulate();
 void process_data();
 int read_radar_file();
 
@@ -120,7 +120,9 @@ int main(int argc, char** argv){
 	return;
     }
 
-    simulate();
+    ret = simulate();
+    if(ret == -1)
+      return;
     process_data();
   }
   else{
@@ -151,7 +153,7 @@ int read_radar_file(){
   // Finish later, depends on how the radar data is stored.
 }
 
-void simulate(){
+int simulate(){
   struct timeval otime, ntime;
 
   gettimeofday(&otime, NULL);
@@ -194,9 +196,17 @@ void simulate(){
   float len = 0;
   int ret = 0;
   ret = scanf("%f", &len);
+  if(len < 0.1*signal_distance){
+    printf("Invalid azimuth length, exiting.\n");
+    return -1;
+  }
   nncols = len*chirp_length/signal_distance;
   printf("Enter area range (m): ");
   ret = scanf("%f", &len);
+  if(len < signal_distance){
+    printf("Too small range, exiting.\n");
+    return -1;
+  }
   nnrows = len*chirp_length/signal_distance;
 
   insert_waveform_in_scene(chirp_length);
