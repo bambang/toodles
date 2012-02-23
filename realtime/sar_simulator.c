@@ -13,16 +13,16 @@
 #include <fftw3.h>
 #include <sys/time.h>
 
-void chirp_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int* chirp_length,  double* signal_distance);
-void chirp_matched_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int* chirp_length);
+void chirp_generator();
+void chirp_matched_generator();
 void insert_waveform_in_scene(unsigned int waveform_length);
-void radar_imager(unsigned int nnrows, unsigned int nncols, unsigned int altitude, float beamwidth);
-void gbp(unsigned int nrows, unsigned int ncols);
-void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned int ncols);
-void gbp_fft(unsigned int nrows, unsigned int ncols);
+void radar_imager(unsigned int altitude, float beamwidth);
+void gbp();
+void pulse_compressed(unsigned int kernel_length);
+void gbp_fft();
 void pulse_compressed_signal(unsigned int kernel_length);
 void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output);
-void filter_dc(unsigned int nrows, unsigned int ncols);
+void filter_dc();
 int write_to_file();
 int simulate();
 void process_data();
@@ -48,7 +48,7 @@ double complex sar_img_shifted[MEMORY_SIZE/sizeof(double complex)];
 
 long unsigned int start_frequency = 0;
 long unsigned int bandwidth = 0;
-unsigned int chirp_length, nnrows, nncols;
+unsigned int chirp_length, nrows, ncols;
 float btproduct = 0;
 int altitude = 0;
 float beamwidth = 0;
@@ -132,13 +132,13 @@ int main(int argc, char** argv){
 
   printf("BT-product: %f\n", btproduct);
   printf("Chirp length: %u\n", chirp_length);
-  printf("Number of rows in final scene: %i\n", nnrows);
-  printf("Number of columns in final scene: %i\n", nncols);
+  printf("Number of rows in final scene: %i\n", nrows);
+  printf("Number of columns in final scene: %i\n", ncols);
   printf("Platform altitude: %i\n", altitude);
   printf("Antenna beamwidth: %f\n", beamwidth);
   printf("Start frequency: %lu\n", start_frequency);
   printf("Bandwidth: %lu\n", bandwidth);
-  printf("Number of complex points: %i\n",nncols*nnrows);
+  printf("Number of complex points: %i\n",ncols*nrows);
   printf("Signal distance: %fm\n", signal_distance);
 
   ret = write_to_file();
@@ -158,7 +158,7 @@ int simulate(){
 
   gettimeofday(&otime, NULL);
 
-  chirp_generator(start_frequency, bandwidth, &chirp_length, &signal_distance);
+  chirp_generator();
 
   gettimeofday(&ntime, NULL);
   printf("Chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -172,7 +172,7 @@ int simulate(){
   printf("Chirp FFT generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  chirp_matched_generator(start_frequency, bandwidth, &chirp_length);
+  chirp_matched_generator();
 
   gettimeofday(&ntime, NULL);
   printf("Matched chirp generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -200,14 +200,14 @@ int simulate(){
     printf("Invalid azimuth length, exiting.\n");
     return -1;
   }
-  nncols = len*chirp_length/signal_distance;
+  ncols = len*chirp_length/signal_distance;
   printf("Enter area range (m): ");
   ret = scanf("%f", &len);
   if(len < signal_distance){
     printf("Too small range, exiting.\n");
     return -1;
   }
-  nnrows = len*chirp_length/signal_distance;
+  nrows = len*chirp_length/signal_distance;
 
   insert_waveform_in_scene(chirp_length);
 
@@ -215,8 +215,8 @@ int simulate(){
   printf("Scene with waveform generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  printf("Scene range: %fm\n", signal_distance*(nnrows/chirp_length));
-  printf("Scene azimuth length: %fm\n", signal_distance*(nncols/chirp_length));
+  printf("Scene range: %fm\n", signal_distance*(nrows/chirp_length));
+  printf("Scene azimuth length: %fm\n", signal_distance*(ncols/chirp_length));
   printf("Please input SAR platform height: ");
   ret = scanf("%d", &altitude);
   if(ret == EOF){
@@ -224,7 +224,7 @@ int simulate(){
     return;
   }
 
-  radar_imager(nnrows, nncols, altitude, beamwidth);
+  radar_imager(altitude, beamwidth);
 
   gettimeofday(&ntime, NULL);
   printf("Radar image generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -236,25 +236,25 @@ void process_data(){
 
   gettimeofday(&otime, NULL);
 
-  pulse_compressed(chirp_length, nnrows, nncols);
+  pulse_compressed(chirp_length);
 
   gettimeofday(&ntime, NULL);
   printf("Pulse compression of radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  gbp(nnrows, nncols);
+  gbp();
 
   gettimeofday(&ntime, NULL);
   printf("GBP of pulse-compressed radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  gbp_fft(nnrows, nncols);
+  gbp_fft();
 
   gettimeofday(&ntime, NULL);
   printf("FFT generation of GBP image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
 
   if(mode == 's')
-    filter_dc(nnrows, nncols);
+    filter_dc();
 }
 
 int write_to_file(){
@@ -326,7 +326,7 @@ int write_to_file(){
     return -1;
   }
 
-  fprintf(dimensions, "%u\n%u\n%u\n%f\n", chirp_length, nnrows, nncols, signal_distance);
+  fprintf(dimensions, "%u\n%u\n%u\n%f\n", chirp_length, nrows, ncols, signal_distance);
   
   if(fmode == 'b'){
 	    ret = fwrite(chirp_signal, 1, chirp_length*sizeof(complex double), chirpf);
@@ -334,11 +334,11 @@ int write_to_file(){
 	    ret = fwrite(chirp_fft, 1, chirp_length*sizeof(complex double), chirpfftf);
 	    ret = fwrite(matched_fft, 1, chirp_length*sizeof(complex double), matchedfftf);
 	    ret = fwrite(pulse_compressed_waveform, 1, chirp_length*sizeof(complex double), compressedf);
-	    ret = fwrite(scene_with_waveform, 1, nnrows*nncols*sizeof(complex double), scene_with_waveformf);
-	    ret = fwrite(radar_image, 1, nnrows*nncols*sizeof(complex double), radar_imagef);
-	    ret = fwrite(pulse_compressed_radar_image, 1, nnrows*nncols*sizeof(complex double), pulse_compressedf);
-	    ret = fwrite(sar_image, 1, nnrows*nncols*sizeof(complex double), sar_imagef);
-	    ret = fwrite(sar_fft, 1, nnrows*nncols*sizeof(double complex), sar_fftf);
+	    ret = fwrite(scene_with_waveform, 1, nrows*ncols*sizeof(complex double), scene_with_waveformf);
+	    ret = fwrite(radar_image, 1, nrows*ncols*sizeof(complex double), radar_imagef);
+	    ret = fwrite(pulse_compressed_radar_image, 1, nrows*ncols*sizeof(complex double), pulse_compressedf);
+	    ret = fwrite(sar_image, 1, nrows*ncols*sizeof(complex double), sar_imagef);
+	    ret = fwrite(sar_fft, 1, nrows*ncols*sizeof(double complex), sar_fftf);
   }
   else{
 	  int i,j;
@@ -367,42 +367,42 @@ int write_to_file(){
 	    fprintf(matchedfftf, "%f\n", cimag(matched_fft[i]));
 	  }
 
-	  for(i = 0; i < nncols; i++){
-	    for(j = 0; j < nnrows; j++){
-	      fprintf(scene_with_waveformf, "%g\t", creal(scene_with_waveform[i*nnrows+j]));
-	      fprintf(scene_with_waveformf, "%g\t", cimag(scene_with_waveform[i*nnrows+j]));
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(scene_with_waveformf, "%g\t", creal(scene_with_waveform[i*nrows+j]));
+	      fprintf(scene_with_waveformf, "%g\t", cimag(scene_with_waveform[i*nrows+j]));
 	    }
 	    fprintf(scene_with_waveformf, "\n");
 	  }
 
-	  for(i = 0; i < nncols; i++){
-	    for(j = 0; j < nnrows; j++){
-	      fprintf(radar_imagef, "%f\t", creal(radar_image[i*nnrows+j]));
-	      fprintf(radar_imagef, "%f\t", cimag(radar_image[i*nnrows+j]));
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(radar_imagef, "%f\t", creal(radar_image[i*nrows+j]));
+	      fprintf(radar_imagef, "%f\t", cimag(radar_image[i*nrows+j]));
 	    }
 	    fprintf(radar_imagef, "\n");
 	  }
 
-	  for(i = 0; i < nncols; i++){
-	    for(j = 0; j < nnrows; j++){
-	      fprintf(pulse_compressedf, "%f\t", creal(pulse_compressed_radar_image[i*nnrows+j]));
-	      fprintf(pulse_compressedf, "%f\t", cimag(pulse_compressed_radar_image[i*nnrows+j]));
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(pulse_compressedf, "%f\t", creal(pulse_compressed_radar_image[i*nrows+j]));
+	      fprintf(pulse_compressedf, "%f\t", cimag(pulse_compressed_radar_image[i*nrows+j]));
 	    }
 	    fprintf(pulse_compressedf, "\n");
 	  }
 
-	  for(i = 0; i < nncols; i++){
-	    for(j = 0; j < nnrows; j++){
-	      fprintf(sar_imagef, "%f\t", creal(sar_image[i*nnrows+j]));
-	      fprintf(sar_imagef, "%f\t", cimag(sar_image[i*nnrows+j]));
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(sar_imagef, "%f\t", creal(sar_image[i*nrows+j]));
+	      fprintf(sar_imagef, "%f\t", cimag(sar_image[i*nrows+j]));
 	    }
 	    fprintf(sar_imagef, "\n");
 	  }
 
-	  for(i = 0; i < nncols; i++){
-	    for(j = 0; j < nnrows; j++){
-	      fprintf(sar_fftf, "%f\t", creal(sar_fft[i*nnrows+j]));
-	      fprintf(sar_fftf, "%f\t", cimag(sar_fft[i*nnrows+j]));
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(sar_fftf, "%f\t", creal(sar_fft[i*nrows+j]));
+	      fprintf(sar_fftf, "%f\t", cimag(sar_fft[i*nrows+j]));
 	    }
 	    fprintf(sar_fftf, "\n");
   	  }
@@ -421,7 +421,7 @@ int write_to_file(){
   fclose(sar_imagef);
 }
 
-void chirp_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int *chirp_length, double* signal_distance){
+void chirp_generator(){
   double end_time = btproduct/bandwidth;
   double chirp_rate = bandwidth/end_time;
 
@@ -429,9 +429,9 @@ void chirp_generator(long unsigned int start_frequency, long unsigned int bandwi
 
   unsigned long int sample_frequency = 5*bandwidth;
   unsigned long int time_steps = end_time*sample_frequency;
-  *chirp_length = time_steps;
+  chirp_length = time_steps;
 
-  *signal_distance = end_time*C;
+  signal_distance = end_time*C;
 
   int i;
   double last_time = (float)10/sample_frequency;
@@ -445,13 +445,13 @@ void chirp_generator(long unsigned int start_frequency, long unsigned int bandwi
   }
 }
 
-void chirp_matched_generator(long unsigned int start_frequency, long unsigned int bandwidth, unsigned int *chirp_length){
+void chirp_matched_generator(){
   float end_time = btproduct/bandwidth;
   float chirp_rate = bandwidth/end_time;
   
   unsigned long int sample_frequency = 5*bandwidth;
   unsigned long int time_steps = end_time*sample_frequency;
-  *chirp_length = time_steps;
+  chirp_length = time_steps;
 
   int i;
   double last_time = end_time+(float)10/sample_frequency;
@@ -502,7 +502,7 @@ void pulse_compressed_signal(unsigned int kernel_length){
   fftw_free(product);
 }
 
-void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned int ncols){
+void pulse_compressed(unsigned int kernel_length){
   // Make sure input has valid values.
   int z;
   for(z = 0; z < kernel_length; z++){
@@ -570,24 +570,24 @@ void pulse_compressed(unsigned int kernel_length, unsigned int nrows, unsigned i
 void insert_waveform_in_scene(unsigned int waveform_length){
 	int i;
 	for(i = 0; i < waveform_length; i++){
-	  scene_with_waveform[ (int)(nncols/2)*nnrows + (int)(nnrows/2) +i] = chirp_signal[i];
+	  scene_with_waveform[ (int)(ncols/2)*nrows + (int)(nrows/2) +i] = chirp_signal[i];
 	}
 }
 
-void radar_imager(unsigned int nnrows, unsigned int nncols, unsigned int altitude, float beamwidth){
+void radar_imager(unsigned int altitude, float beamwidth){
   unsigned int beamcrossrange = round(altitude*tan(beamwidth));
 
   unsigned int i,j,k;
   int beam_value;
-  for(i = 0; i < nncols; i++){
+  for(i = 0; i < ncols; i++){
     for(j = 0; j < 2*beamcrossrange; j++){
       beam_value = j-beamcrossrange;
-      for(k = 0; k < nnrows; k++){
-	if(i+beam_value <= nncols){
+      for(k = 0; k < nrows; k++){
+	if(i+beam_value <= ncols){
 	  int dist = sqrt(pow(beam_value,2)+pow(k, 2));
-	  if(dist <= nnrows){
+	  if(dist <= nrows){
 	    if(i+beam_value >= 1){
-	      radar_image[i*nnrows+dist] += scene_with_waveform[(i+beam_value)*nnrows+k]/pow(dist,2);
+	      radar_image[i*nrows+dist] += scene_with_waveform[(i+beam_value)*nrows+k]/pow(dist,2);
 	    }
 	  }
 	}
@@ -597,7 +597,7 @@ void radar_imager(unsigned int nnrows, unsigned int nncols, unsigned int altitud
 
 }
 
-void gbp(unsigned int nrows, unsigned int ncols){
+void gbp(){
   int j,k,l;
   for(j = 0; j < ncols; j++){
     for(k = 0; k < nrows; k++){
@@ -612,7 +612,7 @@ void gbp(unsigned int nrows, unsigned int ncols){
 
 }
 
-void gbp_fft(unsigned int nrows, unsigned int ncols){
+void gbp_fft(){
   int i, j;
   for(i = 0; i < ncols; i++){
     for(j = 0; j < nrows; j++){
@@ -631,7 +631,7 @@ void fft_waveform(unsigned int kernel_length, double complex* kernel, double com
   fftw_destroy_plan(fft);
 }
 
-void filter_dc(unsigned int nrows, unsigned int ncols){
+void filter_dc(){
   int i,j;
   for(i = ncols/2 - 5; i < ncols/2+5; i++){
     for(j = nrows/2 - 5; j < nrows/2 + 5; j++){
