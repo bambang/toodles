@@ -15,12 +15,12 @@
 
 void chirp_generator();
 void chirp_matched_generator();
-void insert_waveform_in_scene(unsigned int waveform_length);
-void radar_imager(unsigned int altitude, float beamwidth);
+void insert_waveform_in_scene();
+void radar_imager();
+void pulse_compress_image();
 void gbp();
-void pulse_compressed(unsigned int kernel_length);
 void gbp_fft();
-void pulse_compressed_signal(unsigned int kernel_length);
+void pulse_compress_signal();
 void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output);
 void filter_dc();
 int write_to_file();
@@ -184,7 +184,7 @@ int simulate(){
   printf("Matched chirp FFT generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
   gettimeofday(&otime, NULL);
 
-  pulse_compressed_signal(chirp_length);
+  pulse_compress_signal();
 
   gettimeofday(&ntime, NULL);
   printf("Single pulse compression took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -209,7 +209,7 @@ int simulate(){
   }
   nrows = len*chirp_length/signal_distance;
 
-  insert_waveform_in_scene(chirp_length);
+  insert_waveform_in_scene();
 
   gettimeofday(&ntime, NULL);
   printf("Scene with waveform generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -224,7 +224,7 @@ int simulate(){
     return;
   }
 
-  radar_imager(altitude, beamwidth);
+  radar_imager();
 
   gettimeofday(&ntime, NULL);
   printf("Radar image generation took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -236,7 +236,7 @@ void process_data(){
 
   gettimeofday(&otime, NULL);
 
-  pulse_compressed(chirp_length);
+  pulse_compress_image();
 
   gettimeofday(&ntime, NULL);
   printf("Pulse compression of radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -465,7 +465,8 @@ void chirp_matched_generator(){
   }
 }
 
-void pulse_compressed_signal(unsigned int kernel_length){
+void pulse_compress_signal(){
+  int kernel_length = chirp_length;
   unsigned int filter_length = 2*kernel_length;
   //filter_length = pow(2, ceil(log(filter_length)/log(2)));
 
@@ -502,8 +503,9 @@ void pulse_compressed_signal(unsigned int kernel_length){
   fftw_free(product);
 }
 
-void pulse_compressed(unsigned int kernel_length){
+void pulse_compress_image(){
   // Make sure input has valid values.
+  int kernel_length = chirp_length;
   int z;
   for(z = 0; z < kernel_length; z++){
     if(isnan(matched_chirp[z]))
@@ -567,14 +569,14 @@ void pulse_compressed(unsigned int kernel_length){
   fftw_destroy_plan(kernelfft);
 }
 
-void insert_waveform_in_scene(unsigned int waveform_length){
+void insert_waveform_in_scene(){
 	int i;
-	for(i = 0; i < waveform_length; i++){
+	for(i = 0; i < chirp_length; i++){
 	  scene_with_waveform[ (int)(ncols/2)*nrows + (int)(nrows/2) +i] = chirp_signal[i];
 	}
 }
 
-void radar_imager(unsigned int altitude, float beamwidth){
+void radar_imager(){
   unsigned int beamcrossrange = round(altitude*tan(beamwidth));
 
   unsigned int i,j,k;
