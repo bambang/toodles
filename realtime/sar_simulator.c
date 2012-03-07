@@ -71,9 +71,6 @@ int main(int argc, char** argv){
   mode = getchar();
   int ret;
   if(mode == 'p'){
-    printf("Simulation is the only option for now.\n");
-    return;
-
     printf("Please enter file name of raw data: ");
     ret = scanf("%s", radar_data_filename);
     if(ret == EOF){
@@ -87,13 +84,8 @@ int main(int argc, char** argv){
     process_data();
   }
   else if(mode == 's'){
-    printf("Antenna azimuth beamwidth in degrees: ");
+    printf("Antenna azimuth beamwidth in radians: ");
     ret = scanf("%f", &beamwidth);
-    
-    if(beamwidth < 1){
-	printf("Too small beamwidth entered, closing.\n");
-	return;
-    }
     
     printf("Chirp start frequency: ");
     ret = scanf("%li", &start_frequency);
@@ -148,8 +140,31 @@ int read_radar_file(){
   if(fp == NULL)
     return -1;
 
-  // Read and process data in some way.
-  // Finish later, depends on how the radar data is stored.
+  FILE* mp = fopen("radar_metadata", "r");
+  int ret;
+  radar_metadata meta;
+  ret = fread(&meta, sizeof(radar_metadata), 1, mp);
+
+  fclose(mp);
+
+  int i;
+  if(meta.real_or_complex == 'r'){
+    for(i = 0; i < meta.rows*meta.cols; i++){
+      ret = fread(radar_image + i*sizeof(complex double), sizeof(double), 1, fp);
+    }
+  }
+  else if(meta.real_or_complex == 'c'){
+    for(i = 0; i < meta.rows*meta.cols; i++){
+      ret = fread(radar_image + i*sizeof(complex double), sizeof(complex double), 1, fp);
+    }
+  }
+  else{
+    printf("Invalid data mode, should be real or complex, read %c.\n", meta.real_or_complex);
+    fclose(fp);
+    return -1;
+  }
+
+  fclose(fp);
 }
 
 int simulate(){
@@ -235,7 +250,21 @@ void process_data(){
 
   //gettimeofday(&otime, NULL);
 
-  pulse_compress_image();
+  printf("Do you want to enable pulse compression (y/n)? ");
+  char pc = 0;
+  int ret;
+  do{
+    ret = scanf("%c", &pc);
+    if(pc == 'y')
+      break;
+    else if(pc == 'n')
+      break;
+  }while(1);
+  if(pc == 'y')
+    pulse_compress_image();
+  else if(pc == 'n'){
+    memcpy(pulse_compressed_radar_image, radar_image, nrows*ncols*sizeof(complex double));
+  }
 
   //gettimeofday(&ntime, NULL);
   //printf("Pulse compression of radar image took %lis %lfus.\n", ntime.tv_sec - otime.tv_sec, fabs(ntime.tv_usec - otime.tv_usec));
@@ -568,7 +597,7 @@ void pulse_compress_image(){
 void insert_waveform_in_scene(){
 	int i;
 	for(i = 0; i < chirp_length; i++){
-	  scene_with_waveform[ (int)(ncols/2)*nrows + (int)(nrows/2) +i] = chirp_signal[i];
+	  scene_with_waveform[ (int)(ncols/2)*nrows + (int)(nrows/2) -chirp_length/2 +i] = chirp_signal[i];
 	}
 }
 
