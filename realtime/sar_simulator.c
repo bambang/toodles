@@ -14,21 +14,6 @@
 #include <sys/time.h>
 #include "sar_simulator.h"
 
-void chirp_generator();
-void chirp_matched_generator();
-void insert_waveform_in_scene();
-void radar_imager();
-void pulse_compress_image();
-void gbp();
-void gbp_fft();
-void pulse_compress_signal();
-void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output);
-void filter_dc();
-int write_to_file();
-int simulate();
-void process_data();
-int read_radar_file();
-
 double chirp_time_vector[MEMORY_SIZE/sizeof(double)];
 double matched_time_vector[MEMORY_SIZE/sizeof(double)];
 double complex chirp_fft[MEMORY_SIZE/sizeof(double)];
@@ -54,6 +39,7 @@ float beamwidth;
 double signal_distance;
 char mode;
 char radar_data_filename[255];
+char real_or_complex_simulation[2];
 
 int main(int argc, char** argv){
   memset(chirp_time_vector, 0, MEMORY_SIZE);
@@ -84,6 +70,11 @@ int main(int argc, char** argv){
     process_data();
   }
   else if(mode == 's'){
+    printf("Simulate with real or complex values? (r/c): ");
+    ret = scanf("%s", real_or_complex_simulation);
+    if(*real_or_complex_simulation != 'r')
+      *real_or_complex_simulation = 'c';
+
     printf("Antenna azimuth beamwidth in radians: ");
     ret = scanf("%f", &beamwidth);
     
@@ -132,7 +123,10 @@ int main(int argc, char** argv){
   printf("Number of complex points: %i\n",ncols*nrows);
   printf("Signal distance: %fm\n", signal_distance);
 
-  ret = write_to_file();
+  if(*real_or_complex_simulation == 'c')
+    ret = write_complex_data();
+  else
+    ret = write_real_data();
 }
 
 int read_radar_file(){
@@ -285,7 +279,7 @@ void process_data(){
     filter_dc();
 }
 
-int write_to_file(){
+int write_complex_data(){
   char fmode = 0;
   int ret = 0;
 
@@ -447,6 +441,159 @@ int write_to_file(){
   fclose(scene_with_waveformf);
   fclose(radar_imagef);
   fclose(sar_imagef);
+}
+
+int write_real_data(){
+  char fmode = 0;
+  int ret = 0;
+
+  do{
+    fmode = getchar();
+  }while(fmode != '\n');
+
+  printf("Would you like to write data in human-readable or binary format (h/b): ");
+  do{
+    ret = scanf("%c", &fmode);
+  }while((fmode != 'h') && (fmode != 'b'));
+
+  FILE* dimensions = fopen("dimensions.dat", "w");
+  if(dimensions == NULL){
+    printf("Could not open dimensions.dat for writing - exiting.\n");
+    return -1;
+  }
+  FILE* chirpf = fopen("chirp.dat", "wb");
+  if(chirpf == NULL){
+    printf("Could not open chirp.dat for writing - exiting.\n");
+    return -1;
+  }
+  FILE* matchedf = fopen("matched.dat", "wb");
+  if(matchedf == NULL){
+    printf("Could not open matched.dat for writing - exiting.\n");
+    return -1;
+  }
+  FILE* chirpfftf = fopen("chirpfft.dat", "wb");
+  if(chirpfftf == NULL){
+    printf("Could not open chirpfft.dat for writing - exiting.\n");
+    return -1;
+  }
+  FILE* matchedfftf = fopen("matchedfft.dat", "wb");
+  if(matchedfftf == NULL){
+    printf("Could not open matchedfft.dat for writing - exiting.\n");
+    return -1;
+  }
+  FILE* compressedf = fopen("compressed.dat", "wb");
+  if(compressedf == NULL){
+    printf("Could not open compressed.dat for writing - exiting.\n");
+    return -1;
+  }
+  FILE* scene_with_waveformf = fopen("scene_with_waveform.dat", "wb");
+  if(scene_with_waveformf == NULL){
+    printf("Could not open scene_with_waveform.dat for writing - exiting.\n");
+    return -1;
+  }
+  FILE* radar_imagef = fopen("radar_image.dat", "wb");
+  if(radar_imagef == NULL){
+    printf("Could not open radar_image.dat for writing - exiting.\n");
+    return -1;
+  }
+  FILE* pulse_compressedf = fopen("pulse_compressed_image.dat", "wb");
+  if(pulse_compressedf == NULL){
+   printf("Could not open pulse_compressed_image.dat for writing - exiting.\n");
+   return -1;
+  }
+  FILE* sar_imagef = fopen("sar_image.dat", "wb");
+  if(sar_imagef == NULL){
+    printf("Could not open sar_image.dat for writing - exiting.\n");
+    return -1;
+  }
+  FILE* sar_fftf = fopen("sar_fft.dat", "wb");
+  if(sar_fftf == NULL){
+    printf("Could not open sar_fft.dat for writing - exiting.\n");
+    return -1;
+  }
+
+  fprintf(dimensions, "%u\n%u\n%u\n%f\n", chirp_length, nrows, ncols, signal_distance);
+  
+  if(fmode == 'b'){
+	    ret = fwrite(chirp_signal, 1, chirp_length*sizeof(complex double), chirpf);
+	    ret = fwrite(matched_chirp, 1, chirp_length*sizeof(complex double), matchedf);
+	    ret = fwrite(chirp_fft, 1, chirp_length*sizeof(complex double), chirpfftf);
+	    ret = fwrite(matched_fft, 1, chirp_length*sizeof(complex double), matchedfftf);
+	    ret = fwrite(pulse_compressed_waveform, 1, chirp_length*sizeof(complex double), compressedf);
+	    ret = fwrite(scene_with_waveform, 1, nrows*ncols*sizeof(complex double), scene_with_waveformf);
+	    ret = fwrite(radar_image, 1, nrows*ncols*sizeof(complex double), radar_imagef);
+	    ret = fwrite(pulse_compressed_radar_image, 1, nrows*ncols*sizeof(complex double), pulse_compressedf);
+	    ret = fwrite(sar_image, 1, nrows*ncols*sizeof(complex double), sar_imagef);
+	    ret = fwrite(sar_fft, 1, nrows*ncols*sizeof(double complex), sar_fftf);
+  }
+  else{
+	  int i,j;
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(chirpf, "%f\n", creal(chirp_signal[i]));
+	  }
+
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(matchedf, "%f\n", creal(matched_chirp[i]));
+	  }
+
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(compressedf, "%f\n", creal(pulse_compressed_waveform[i]));
+	  }
+
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(chirpfftf, "%f\n", creal(chirp_fft[i]));
+	  }
+
+	  for(i = 0; i < chirp_length; i++){
+	    fprintf(matchedfftf, "%f\n", creal(matched_fft[i]));
+	  }
+
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(scene_with_waveformf, "%g\n", creal(scene_with_waveform[i*nrows+j]));
+	    }
+	    fprintf(scene_with_waveformf, "\n");
+	  }
+
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(radar_imagef, "%f\n", creal(radar_image[i*nrows+j]));
+	    }
+	    fprintf(radar_imagef, "\n");
+	  }
+
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(pulse_compressedf, "%f\n", creal(pulse_compressed_radar_image[i*nrows+j]));
+	    }
+	    fprintf(pulse_compressedf, "\n");
+	  }
+
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(sar_imagef, "%f\n", creal(sar_image[i*nrows+j]));
+	    }
+	    fprintf(sar_imagef, "\n");
+	  }
+
+	  for(i = 0; i < ncols; i++){
+	    for(j = 0; j < nrows; j++){
+	      fprintf(sar_fftf, "%f\n", creal(sar_fft[i*nrows+j]));
+	    }
+	    fprintf(sar_fftf, "\n");
+  	  }
+  }
+
+  fclose(sar_fftf);
+  fclose(pulse_compressedf);
+  fclose(dimensions);
+  fclose(chirpf);
+  fclose(matchedf);
+  fclose(chirpfftf);
+  fclose(matchedfftf);
+  fclose(compressedf);
+  fclose(scene_with_waveformf);
+  fclose(radar_imagef);
 }
 
 void chirp_generator(){
