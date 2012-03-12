@@ -1,14 +1,5 @@
 #define PI 3.14159265
 #define C 300000000
-//#define MEMORY_SIZE 104857600
-#define MEMORY_SIZE 209715200
-//#define MEMORY_SIZE 429496730
-//#define MEMORY_SIZE 536870912
-//#define MEMORY_SIZE 1073741824
-//#define MEMORY_SIZE 2147483648
-//
-//
-
 #include <complex.h>
 
 typedef struct{
@@ -48,21 +39,21 @@ typedef struct{
   char real_or_complex_simulation[2];
 }radar_variables;
 
-void chirp_generator();
-void chirp_matched_generator();
-void insert_waveform_in_scene();
-void radar_imager();
-void pulse_compress_image();
-void gbp();
-void gbp_fft();
-void pulse_compress_signal();
+void chirp_generator(data_arrays* data, radar_variables* variables);
+void chirp_matched_generator(data_arrays* data, radar_variables* variables);
+void insert_waveform_in_scene(data_arrays* data, radar_variables* variables);
+void radar_imager(data_arrays* data, radar_variables* variables);
+void pulse_compress_image(data_arrays* data, radar_variables* variables);
+void gbp(data_arrays* data, radar_variables* variables);
+void gbp_fft(data_arrays* data, radar_variables* variables);
+void pulse_compress_signal(data_arrays* data, radar_variables* variables);
 void fft_waveform(unsigned int kernel_length, double complex* kernel, double complex* output);
-void filter_dc();
-int write_complex_data();
-int write_real_data();
-int simulate();
-void process_data();
-int read_radar_file();
-float calculate_compressed_pulse_resolution();
+void filter_dc(data_arrays* data, radar_variables* variables);
+int write_complex_data(data_arrays* data, radar_variables* variables);
+int write_real_data(data_arrays* data, radar_variables* variables);
+int simulate(data_arrays* data, radar_variables* variables);
+void process_data(data_arrays* data, radar_variables* variables);
+int read_radar_file(data_arrays* data, radar_variables* variables);
+float calculate_compressed_pulse_resolution(data_arrays* data, radar_variables* variables);
 void normalize_radar_data();
 void free_memory();
